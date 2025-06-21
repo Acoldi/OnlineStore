@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using OnlineStore.Core.Entities;
-using OnlineStore.Core.Interfaces.Category;
+using OnlineStore.Core.Enums;
 using OnlineStore.Core.Interfaces.DataAccess;
 using OnlineStore.Core.InterfacesAndServices;
+using OnlineStore.Core.InterfacesAndServices.IRepositories;
 using Serilog.Core;
 
 namespace OnlineStore.Web.Controllers;
@@ -14,9 +16,9 @@ namespace OnlineStore.Web.Controllers;
 [ApiController]
 public class CategoryController : ControllerBase
 {
-  private readonly ICategoryService _categoryService;
+  private readonly ICategoryRepo _categoryService;
 
-  public CategoryController(ICategoryService categoryService)
+  public CategoryController(ICategoryRepo categoryService)
   {
     _categoryService = categoryService;
   }
@@ -35,16 +37,22 @@ public class CategoryController : ControllerBase
       parentCategory = null;
     try
     {
-      result = await _categoryService.CreatCategoryAsync(new Category(name, parentCategory, UtilityService.GenerateSlug(name)));
-      return Ok(new { succes = result });
+      result = await _categoryService.CreateAsync(new Category()
+      {
+        Name = name,
+        ParentCategoryID = parentCategory,
+        Slug = UtilityService.GenerateSlug(name)
+      });
+
+      return Ok(new { NewID = result });
     }
     catch (Exception e)
     {
-      return BadRequest(new { succes = $"There is already a {name} category; {e.Message}" });
+      return BadRequest(new {e.Message} );
     }
   }
 
-  [HttpDelete("ID: {ID}", Name = "Delete Category")]
+  [HttpDelete("ID/{ID}", Name = "Delete Category")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -52,26 +60,21 @@ public class CategoryController : ControllerBase
   [Authorize(Roles = "Admin")]
   public async Task<IActionResult> DeleteCategory(int ID, CancellationToken ct)
   {
-    bool result = false;
-
     try
     {
-      result = await _categoryService.DeleteCategoryAsync(ID, ct);
-      
-      if (result)
-        return Ok("Category with the ID: " + ID + " Deleted");
-      else
-        return BadRequest("There is no category with ID: " + ID);
+      await _categoryService.DeleteAsync(ID, ct);
+      return NoContent();
     }
-    catch (Exception e)
+    catch (SqlException e)
     {
       Log.Error(e.Message);
-      return BadRequest(e.Message);
+      return BadRequest("There are either products linked to this category or it's a parent category, " +
+        "resolve any related data before deleting " + e.Message);
     }
 
   }
 
-  [HttpDelete("Name: {Name}", Name = "DeleteCategoryByName")]
+  [HttpDelete("Name/{Name}", Name = "DeleteCategoryByName")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -79,16 +82,10 @@ public class CategoryController : ControllerBase
   [Authorize(Roles = "Admin")]
   public async Task<IActionResult> DeleteCategory(string Name, CancellationToken ct)
   {
-    bool result = false;
-
     try
     {
-      result = await _categoryService.DeleteCategoryByNameAsync(Name, ct);
-      
-      if (result)
-        return Ok("Category with name: " + Name + " Deleted");
-      else
-        return BadRequest("There is no category with name: " + Name);
+      await _categoryService.DeleteCategoryByNameAsync(Name, ct);
+      return NoContent();      
     }
     catch (Exception e)
     {
@@ -98,24 +95,18 @@ public class CategoryController : ControllerBase
 
   }
 
-  [HttpPut("Update {ID}", Name = "UpdateCategory")]
+  [HttpPut("Update", Name = "UpdateCategory")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
   [ProducesResponseType(StatusCodes.Status403Forbidden)]
   [Authorize(Roles = "Admin")]
-  public async Task<IActionResult> UpdateCategory(int ID, Category category, CancellationToken ct)
+  public async Task<IActionResult> UpdateCategory(Category category, CancellationToken ct)
   {
-    bool result = false;
-
     try
     {
-      result = await _categoryService.UpdateCategoryAsync(ID, category, ct);
-      
-      if (result)
-        return Ok("Category with name: " + category.Name + " updated");
-      else
-        return NotFound("There is no category with name: " + category.Name);
+      await _categoryService.UpdateAsync(category, ct);
+      return NoContent();      
     }
     catch (Exception e)
     {
@@ -137,7 +128,7 @@ public class CategoryController : ControllerBase
 
     try
     {
-      categories = await _categoryService.GetCategoriesAsync(ct);
+      categories = await _categoryService.GetAsync(ct);
       
       if (categories != null)
         return Ok(categories);
@@ -153,47 +144,46 @@ public class CategoryController : ControllerBase
 
   }
 
-  [HttpGet("{Name}", Name = "GetCategoryByName")]
+  [HttpGet("UnderParentName/{Name}", Name = "GetCategoryUnderParentName")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status204NoContent)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
   [ProducesResponseType(StatusCodes.Status403Forbidden)]
   [Authorize(Roles = "Admin")]
-  public async Task<IActionResult> GetCategoryByName(string Name, CancellationToken ct)
+  public async Task<IActionResult> GetCategoryUnderParentName(string Name, CancellationToken ct)
   {
     List<Category>? categories = new List<Category>();
 
     try
     {
-      categories = await _categoryService.GetCategoryByName(Name, ct);
+      categories = await _categoryService.GetCategoriesUnderParentNameAsync(Name, ct);
       
       if (categories != null)
         return Ok(categories);
       else
-        return NoContent();
+        return NotFound("There are no category named " + Name);
     }
     catch (Exception e)
     {
       Log.Error(e.Message);
       return StatusCode(StatusCodes.Status500InternalServerError, new { error = e.Message });
-
     }
 
   }
 
-  [HttpGet("Under {categoryID}", Name = "GetCategoriesUnder")]
+  [HttpGet("UnderParentID/{ParentCategoryID}", Name = "GetCategoriesUnder")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status204NoContent)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
   [ProducesResponseType(StatusCodes.Status403Forbidden)]
   [Authorize(Roles = "Admin")]
-  public async Task<IActionResult> GetCategoriesUnder(int categoryID, CancellationToken ct)
+  public async Task<IActionResult> GetCategoriesUnder(int ParentCategoryID, CancellationToken ct)
   {
     List<Category>? categories = new List<Category>();
 
     try
     {
-      categories = await _categoryService.GetCategoriesUnderAsync(categoryID, ct);
+      categories = await _categoryService.GetCategoriesUnderParentIDAsync(ParentCategoryID, ct);
       
       if (categories != null)
         return Ok(categories);

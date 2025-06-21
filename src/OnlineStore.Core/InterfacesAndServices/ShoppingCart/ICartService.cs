@@ -1,19 +1,49 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using OnlineStore.Core.Entities;
-using OnlineStore.Core.InterfacesAndServices.DTOs;
-using OnlineStore.Core.InterfacesAndServices.DTOs.Parameters;
+﻿
 
-namespace OnlineStore.Core.InterfacesAndServices.ShoppingCart;
+using OnlineStore.Core.DTOs;
+using OnlineStore.Core.Entities;
+
+namespace OnlineStore.Core.InterfacesAndServices;
 public interface ICartService
 {
-  public Task PlaceOrder(CreateOrderParam createOrderParam, CancellationToken ct);
+  /// <summary>
+  /// Creates an order for this user's cart
+  /// </summary>
+  /// <param name="orderToPlace"></param>
+  /// <param name="ct"></param>
+  /// <returns></returns>
+  public Task PlaceOrder(Order orderToPlace, CancellationToken ct);
 
-  public Task<List<CartItem>> LoadCartItems(int customerID, CancellationToken ct);
+  /// <summary>
+  /// Retruns items in the cart if any
+  /// </summary>
+  /// <param name="ct"></param>
+  /// <returns></returns>
+  public Task<List<OrderItem>?> LoadCartItems(Guid UserID, CancellationToken ct);
+
+  /// <summary>
+  /// Removes any items (if any), and set provided items instead. If orderItems is null, the cart only gets empty
+  /// </summary>
+  /// <param name="orderItems"></param>
+  /// <param name="ct"></param>
+  /// <returns></returns>
+  public Task<bool> SetItemsAsync(Guid UserID, List<CartItem> orderItems, CancellationToken ct);
+
+  /// <summary>
+  /// Creates a new cart for the user
+  /// </summary>
+  /// <param name="ct"></param>
+  /// <returns></returns>
+  /// 
+  //public Task<int?> CreateCartAsync(Guid? UserID, CancellationToken ct);
 
 
+  /// <summary>
+  /// Removes all items from the cart
+  /// </summary>
+  /// <param name="UserID"></param>
+  /// <param name="ct"></param>
+  /// <returns></returns>
+  ///
+  public Task RemoveAllItemsAsync(int shoppingCartID, CancellationToken ct);
 }

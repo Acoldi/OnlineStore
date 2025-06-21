@@ -1,26 +1,14 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using System.Text;
-using Microsoft.AspNetCore.Connections;
-using Microsoft.Extensions.Configuration;
+﻿using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using OnlineStore.Core.Interfaces.DataAccess;
-using OnlineStore.Core.Interfaces.Products;
-using OnlineStore.Infrastructure.Data;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI;
-using OnlineStore.Core.Interfaces.JWT;
-using OnlineStore.Web.JWT;
 using Microsoft.OpenApi.Models;
-using OnlineStore.Core.Interfaces.Category;
-using OnlineStore.Core.Interfaces;
-using OnlineStore.Core.Interfaces.User;
-using OnlineStore.Core.InterfacesAndServices.Category;
-using OnlineStore.Core.InterfacesAndServices.User;
-using OnlineStore.Core.InterfacesAndServices.Product;
-using OnlineStore.Core.InterfacesAndServices.Order;
-using OnlineStore.Core.InterfacesAndServices.OrderItem;
-using Serilog.Core;
-using OnlineStore.Core.InterfacesAndServices.ShoppingCart;
+using OnlineStore.Core.Interfaces.JWT;
+using OnlineStore.Core.InterfacesAndServices;
+using OnlineStore.Core.InterfacesAndServices.IRepositories;
+using OnlineStore.Infrastructure.Data;
+using OnlineStore.Infrastructure.Data.RepositoriesImplementation;
+using OnlineStore.Infrastructure.Data.RepositoriesImplementations;
+using OnlineStore.Web.JWT;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,6 +60,7 @@ builder.Services.AddSwaggerGen(o =>
   });
 });
 
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -85,27 +74,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         ValidAudience = builder.Configuration["JwtSettings:audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecurityKey"] ?? ""))
       };
-      
+
       options.RequireHttpsMetadata = false;
       options.MapInboundClaims = true;
     });
 
 builder.Services.AddAuthorization();
 
+
 // Access the configuration
 builder.Configuration.AddJsonFile("appsettings.json");
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddScoped<OnlineStore.Infrastructure.Data.IConnectionFactory>
-  ( _ => new ConnectionStringFactory(connectionString));
+  (_ => new ConnectionStringFactory(connectionString));
 
-builder.Services.AddScoped<IDataAccess, DataAccessService>();
-builder.Services.AddScoped<IProductService, ProductService>();
+//builder.Services.AddScoped<IDataAccess, DataAccess>();
+builder.Services.AddScoped<IProductRepo, ProductRepo>();
 builder.Services.AddScoped<IJWTService, JWTService>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-builder.Services.AddScoped<IUserService, UserSservice>();
-builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddScoped<IOrderItemService, OrderItemService>();
+builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
+builder.Services.AddScoped<IUserRepo, UserRepo>();
+builder.Services.AddScoped<IOrderRepo, OrderRepo>();
+builder.Services.AddScoped<IOrderItemRepo, OrderItemRepo>();
 builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<ICartRepo, CartRepo>();
 
 var app = builder.Build();
 
@@ -121,7 +112,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
 app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.MapControllers();

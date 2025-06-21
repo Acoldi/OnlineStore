@@ -4,7 +4,7 @@ using OnlineStore.Core.Entities;
 using OnlineStore.Core.Enums;
 using OnlineStore.Core.Interfaces.DataAccess;
 using OnlineStore.Core.Interfaces.JWT;
-using OnlineStore.Core.Interfaces.User;
+using OnlineStore.Core.InterfacesAndServices.IRepositories;
 using OnlineStore.Web.DTOs;
 
 namespace OnlineStore.Web.Controllers;
@@ -12,15 +12,13 @@ namespace OnlineStore.Web.Controllers;
 [ApiController]
 public class LoginController : ControllerBase
 {
-  IDataAccess _DAccess;
   IJWTService _jWTService;
-  IUserService _userService;
+  IUserRepo _userRepo;
 
-  public LoginController(IDataAccess DA, IJWTService jWTService, IUserService userService)
+  public LoginController(IJWTService jWTService, IUserRepo userRepo)
   {
-    _DAccess = DA;
     _jWTService = jWTService;
-    _userService = userService;
+    _userRepo = userRepo;
   }
 
   [HttpGet("Login", Name ="Login")]
@@ -28,12 +26,15 @@ public class LoginController : ControllerBase
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
   public async Task<IActionResult> Login(string email, string Password, CancellationToken ct)
   {
-    LoginDTO? loginDTO = await _DAccess.LoadSingleAsync<LoginDTO>("SP_GetUserByEmail", CommandType.StoredProcedure, ct, new { email });
+    OnlineStore.Core.Entities.User? user = await _userRepo.GetByEmail(email, ct);
 
-    if (loginDTO != null)
-      return Ok(_jWTService.GetJWToken(loginDTO.ID.ToString()!, loginDTO.IsAdmin ? enRole.Admin : enRole.User));
-    else
-      return BadRequest("User Need to register first");
+    if (user == null)
+      throw new Exception("User should register first");
+
+    LoginDTO? loginDTO = new LoginDTO() { ID = user.ID, email = user.EmailAddress, Password = user.Password, 
+      IsActive = user.IsActive, IsAdmin = user.IsAdmin};
+
+    return Ok(_jWTService.GetJWToken(loginDTO.ID.ToString()!, loginDTO.IsAdmin ? enRole.Admin : enRole.User));
   }
 
 
@@ -42,20 +43,23 @@ public class LoginController : ControllerBase
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
   public async Task<IActionResult> Register(string email, string password, CancellationToken ct)
   {
-    LoginDTO? UserLoginDTO = await _DAccess.LoadSingleAsync<LoginDTO>("SP_GetUserByEmail", CommandType.StoredProcedure, ct, email);
+    Core.Entities.User? user = await _userRepo.GetByEmail(email, ct);
 
-    if (UserLoginDTO != null)
+    if (user != null)
     {
-      return BadRequest("There is already a registered email: " + email);
+      return BadRequest("This user is already registered with the email: " + email);
     }
     else
     {
-      int NewUserID = await _userService.Create(new AddNewUserParameters { EmailAddress = email, Password = password }, ct);
+      user = new Core.Entities.User()
+      {
+        EmailAddress = email,
+        Password = password,
+      };
+      //                         USer id is guid
+      Guid NewUserID = await _userRepo.CreateAsync(user, ct);
 
-      if (NewUserID > 0)
-        return Ok(_jWTService.GetJWToken(NewUserID.ToString(), enRole.User));
-      else
-        return StatusCode(StatusCodes.Status500InternalServerError);
+      return Ok(_jWTService.GetJWToken(NewUserID.ToString(), enRole.User));
     }
   }
 

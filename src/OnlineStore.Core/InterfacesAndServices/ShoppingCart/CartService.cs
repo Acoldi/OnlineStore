@@ -1,90 +1,117 @@
-﻿using OnlineStore.Core.Interfaces.DataAccess;
-using OnlineStore.Core.InterfacesAndServices.DTOs;
-using OnlineStore.Core.InterfacesAndServices.DTOs.Parameters;
-using OnlineStore.Core.InterfacesAndServices.Order;
-using OnlineStore.Core.InterfacesAndServices.OrderItem;
+﻿using OnlineStore.Core.DTOs;
+using OnlineStore.Core.Entities;
+using OnlineStore.Core.InterfacesAndServices.IRepositories;
 using Serilog;
 
-namespace OnlineStore.Core.InterfacesAndServices.ShoppingCart;
+namespace OnlineStore.Core.InterfacesAndServices;
 public class CartService : ICartService
 {
-  private readonly List<CartItem> _cartItems;
-  private readonly IOrderService _orderService;
-  private readonly IOrderItemService _orderItem;
-  private readonly IDataAccess _dataAccess;
-  public CartService(IOrderService orderService, IOrderItemService orderItem, IDataAccess dataAccess)
+  private readonly IOrderRepo _orderRepo;
+  private readonly IOrderItemRepo _orderItemRepo;
+  private readonly IProductRepo _productRepo;
+  ICartRepo _cartRepo;
+  ICustomizationRepo _customizationRepo;
+
+  public CartService(
+      ICartRepo cartRepo,
+      IOrderRepo orderService,
+      IOrderItemRepo orderItem,
+      IProductRepo productService,
+      ICustomizationRepo customizationRepo)
   {
-    _orderService = orderService;
-    _orderItem = orderItem;
-    _dataAccess = dataAccess;
-
-    _cartItems = new List<CartItem>();
+    _orderRepo = orderService;
+    _orderItemRepo = orderItem;
+    _productRepo = productService;
+    _cartRepo = cartRepo;
+    _customizationRepo = customizationRepo;
   }
-
-  public Task AddItem(List<CartItem> orderItem)
-  {
-    _cartItems.AddRange(orderItem);
-    return Task.CompletedTask;
-  }
-
-  public Task Remove(int productID)
-  {
-    _cartItems.RemoveAll(c => c.ProductID == productID);
-
-    return Task.CompletedTask;
-  }
-
   /// <summary>
-  /// Save User's items in cart
+  /// Removes all items in the user cart and add new orderItems
   /// </summary>
   /// <param name="UserID"></param>
+  /// <param name="CartItems"></param>
   /// <param name="ct"></param>
   /// <returns></returns>
-  public async Task AddItemsToCart(int UserID, CancellationToken ct)
+  public async Task<bool> SetItemsAsync(
+    Guid UserID,
+    List<CartItem> CartItems,
+    CancellationToken ct)
   {
-    int UserCartID = await _dataAccess.CreateAsync<Guid>("SP_CreateShoppingCart", System.Data.CommandType.StoredProcedure, ct, UserID);
-
-    foreach (CartItem item in _cartItems)
+    try
     {
-      await _orderItem.create(new CreateOrderItemParam() {
-        ShoppingCartID = UserCartID,
-        Price = item.PriceSnapShot,
-        ProductID = item.ProductID,
-        Quantity = item.Quantity
-      },
-      ct);
+
+      // Get the user's cart id 
+      int? ShoppingCartID = await _cartRepo.CreateAsync(UserID, ct);
+
+      if (ShoppingCartID == null)
+        return false;
+
+      // ToDo: Remove customizations if any!
+      // Remove current items from the cart
+      await RemoveAllItemsAsync(ShoppingCartID.Value, ct);
+
+      int NewOrderItemID = 0;
+      OrderItem orderItem = new OrderItem();
+      Customization customization;
+      foreach (CartItem item in CartItems)
+      {
+        orderItem = new OrderItem()
+        {
+          ProductID = item.ProductID,
+          Quantity = item.Quantity,
+          ShoppingCartID = ShoppingCartID,
+          // Price is set on the DB level
+        };
+
+        NewOrderItemID = await _orderItemRepo.CreateAsync(orderItem, ct);
+
+        // Add customizations for OrderItem
+        if (item.ChoicesID != null)
+        {
+          foreach (int choiceID in item.ChoicesID)
+          {
+            customization = new Customization()
+            {
+              CustomizationChoiceID = choiceID,
+              OrderItemID = NewOrderItemID,
+              ExtraCost = await _customizationRepo.GetCustomizationExtraCost(choiceID, item.Quantity)
+            };
+
+            await _customizationRepo.CreateAsync(customization);
+          }
+        }
+      }
+      return true;
+    }
+    catch (Exception ex)
+    {
+      Log.Logger.Error(ex.Message);
+      return false;
     }
   }
 
-  public async Task PlaceOrder(CreateOrderParam createOrderParam, CancellationToken ct)
+
+  public async Task PlaceOrder(Order order, CancellationToken ct)
   {
-    int OrderId = 0;
     try
     {
-      OrderId = await _orderService.Creaate(createOrderParam, ct);
+      await _orderRepo.CreateAsync(order, ct);
     }
     catch (Exception ex)
     {
       Log.Error(ex, "An error occurred while placing an order.");
       throw;
     }
-
-    foreach (CartItem item in _cartItems)
-    {
-      await _orderItem.create(new CreateOrderItemParam() {
-        OrderID = OrderId,
-        Price = item.PriceSnapShot,
-        ProductID = item.ProductID,
-        Quantity = item.Quantity
-      },
-      ct);
-
-    }
   }
 
-  public async Task<List<CartItem>> LoadCartItems(int customerID, CancellationToken ct)
+  public async Task<List<OrderItem>?> LoadCartItems(Guid UserID, CancellationToken ct)
   {
-    return await _dataAccess.LoadDataAsync<CartItem>()
+    return await _cartRepo.GetCartItemsAsync(UserID);
+  }
+
+  public async Task RemoveAllItemsAsync(int ShoppingCartID, CancellationToken ct)
+  {
+    await _cartRepo.RemoveCartItemsAsync(ShoppingCartID);
   }
 
 }

@@ -1,27 +1,34 @@
 ﻿namespace OnlineStore.Core.Entities;
 public class Product
 {
-  int? ID;
-  public string? Name { get; set; }
+  public int ID { get; set; }
+  public required string Name { get; set; }
   public string? Description { get; set; }
   public decimal Price { get; set; }
-  public int Category_Id { get; set; }
-  public string? Sku { get; set; }
+  public required string SKU { get ; set; }
+  public int CategoryID { get; set; }
+    public int? CustomizationOptionID { get; set; }
   public DateTime CreatedAt { get; set; }
   public bool IsActive { get; set; }
+  public required string SLUG { get; set; }
+  
 
-  public Product(int? id, string name, string? description, decimal price, int categoryId, string? sku, DateTime createdAt, bool isActive)
+  public Product(int id, string name, string? description, decimal price, int categoryId, string sku, DateTime createdAt, bool isActive, 
+    string SLUG, int customizationOptionID)
   {
     ID = id;
     Name = name;
     Description = description;
     Price = price;
-    Category_Id = categoryId;
-    Sku = sku;
+    CategoryID = categoryId;
+    SKU = sku;
     CreatedAt = createdAt;
     IsActive = isActive;
+    this.SLUG = SLUG;
+    CustomizationOptionID = customizationOptionID;
   }
 
   public Product()
-  {  }
+  { }
+
 }

@@ -3,17 +3,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using OnlineStore.Core.DTOs.Parameters;
 using OnlineStore.Core.Entities;
-using OnlineStore.Core.Interfaces.DTOs.Parameters;
-using OnlineStore.Core.Interfaces.Products;
+using OnlineStore.Core.InterfacesAndServices.IRepositories;
 
 namespace OnlineStore.Web.Controllers;
 [Route("api/Product")]
 [ApiController]
 public class ProductController : ControllerBase
 {
-  IProductService _productService;
-  public ProductController(IProductService productService)
+  IProductRepo _productService;
+  public ProductController(IProductRepo productService)
   {
     _productService = productService;
   }
@@ -24,15 +24,36 @@ public class ProductController : ControllerBase
   [ProducesResponseType(StatusCodes.Status404NotFound)]
   public async Task<IActionResult> GetAllProductsAsync()
   {
-    var result = await _productService.GetAll();
+    var result = await _productService.GetAsync();
     return Ok(result);
   }
 
-  [HttpPost("Add product", Name = "AddProduct")]
+  [HttpPost("Product", Name = "AddProduct")]
   [ProducesResponseType(StatusCodes.Status200OK)]
+  [Authorize]
   public async Task<IActionResult> AddProductAsync(AddProductParameters NewProduct)
   {
-    if (await _productService.Create(NewProduct) != 0)
+    Product? product = await _productService.GetByNameAsync(NewProduct.ProductName);
+    if (product != null)
+      return BadRequest("there is already a product named: " + NewProduct.ProductName);
+
+    if (NewProduct.CustomizationOptionID == 0)
+      NewProduct.CustomizationOptionID = null;
+
+    product = new Product()
+    {
+      Name = NewProduct.ProductName,
+      SKU = "NotImplementedYet",
+      SLUG = "NotImplementedYet",
+      CreatedAt = DateTime.Now,
+      CustomizationOptionID = NewProduct.CustomizationOptionID,
+      CategoryID = NewProduct.CategoryID,
+      Description = NewProduct.Description,
+      IsActive = true,
+      Price = NewProduct.Price,
+    };
+    
+    if (await _productService.CreateAsync(product) != 0)
       return Ok("Product created");
     else
       return StatusCode(StatusCodes.Status500InternalServerError);
@@ -42,8 +63,7 @@ public class ProductController : ControllerBase
   [ProducesResponseType(StatusCodes.Status200OK)]
   public async Task<IActionResult> DeleteProductAsync(int ID)
   {
-
-    await _productService.Delete(ID);
+    await _productService.DeleteAsync(ID);
     
     return Ok("Product deleted");
   }
