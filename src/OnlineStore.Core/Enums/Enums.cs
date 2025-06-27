@@ -19,7 +19,14 @@ public enum enPaymentStatus {
   Cancelled=6,
   Voided=7,
   Expired=8,
+}
 
+public enum enPaymentStatusZaincash 
+{
+  Pending=1,
+  success,
+  completed,
+  failed
 }
 
 public enum enPaymentMethod

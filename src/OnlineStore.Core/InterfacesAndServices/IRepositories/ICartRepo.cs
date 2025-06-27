@@ -11,6 +11,12 @@ public interface ICartRepo : IDataAccess<ShoppingCart, int>
 {
   public Task<List<OrderItem>?> GetCartItemsAsync(Guid UserID);
 
+  /// <summary>
+  /// Deltes all items in the user cart and all thier related customizations (after delete trigger is applied on the DB 
+  /// level that removes an item customizations)
+  /// </summary>
+  /// <param name="ShoppingCartID"></param>
+  /// <returns></returns>
   public Task<bool> RemoveCartItemsAsync(int ShoppingCartID);
 
   public Task<int?> CreateAsync(Guid UserID, CancellationToken? cancellationToken = null);

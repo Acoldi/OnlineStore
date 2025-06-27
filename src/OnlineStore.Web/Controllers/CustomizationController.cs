@@ -5,7 +5,7 @@ using OnlineStore.Core.Entities;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
 
 namespace OnlineStore.Web.Controllers;
-[Route("api/CustomizationController")]
+[Route("api/Customization")]
 [ApiController]
 public class CustomizationController : ControllerBase
 {
@@ -18,9 +18,10 @@ public class CustomizationController : ControllerBase
   [Authorize]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status404NotFound)]
-  public async Task<ActionResult<List<CustomizationOption>>> GetProductCustomizations(int productID)
+  [HttpGet("{productID}")]
+  public async Task<ActionResult<List<Core.Entities.CustomizationOption>>> GetProductCustomizations(int productID)
   {
-     List<CustomizationOption>? customizationOptions = await _customizationOptionRepo.GetProductCustomizationOptions();
+    List<Core.Entities.CustomizationOption>? customizationOptions = await _customizationOptionRepo.GetProductCustomizationOptions();
 
     if (customizationOptions == null)
       return NotFound("No customization options found for this product.");

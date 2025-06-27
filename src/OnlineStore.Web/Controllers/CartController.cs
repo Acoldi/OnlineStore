@@ -6,7 +6,7 @@ using OnlineStore.Core.DTOs.Parameters;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.InterfacesAndServices;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
-using OnlineStore.Infrastructure.Data.RepositoriesImplementations;
+using OnlineStore.Core.InterfacesAndServices.Payment;
 
 namespace OnlineStore.Web.Controllers;
 [Route("api/Cart")]
@@ -16,13 +16,14 @@ public class CartController : ControllerBase
   private readonly ICartService _cartService;
   private readonly ICartRepo _cartRepo;
   private readonly ICustomerRepo _customerRepo;
+  private readonly IPaymentService _paymentService;
 
-  public CartController(ICartRepo cartRepo, ICartService cartService, ICustomerRepo customerRepo)
+  public CartController(ICartRepo cartRepo, ICartService cartService, ICustomerRepo customerRepo, IPaymentService paymentService)
   {
-    _cartService = cartService;
     _cartService = cartService;
     _cartRepo = cartRepo;
     _customerRepo = customerRepo;
+    _paymentService = paymentService;
   }
 
   private Guid GetUserID()
@@ -31,23 +32,21 @@ public class CartController : ControllerBase
     if (UserID == null)
       throw new Exception("Tampered with JWT!");
 
-      return new Guid(UserID);
+    return new Guid(UserID);
   }
 
   [HttpPost("AddItems")]
   [ProducesResponseType(200)]
   [ProducesResponseType(StatusCodes.Status500InternalServerError)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [Authorize(Roles = "Admin")]
-  public async Task<IActionResult> AddItems(List<Tuple<CartItem, CustomizedItem?>> cartItems, CancellationToken ct)
+  [Authorize(Roles = "Admin")]
+  public async Task<IActionResult> AddItems(List<CartItem> cartItems, CancellationToken ct)
   {
-    Guid? UserID = GetUserID();
-    if (UserID == null)
-      return Unauthorized("Did not find userID!");
-
+    Guid UserID = GetUserID();
+    
     try
     {
-      await _cartService.SetItemsAsync(UserID.Value, cartItems, ct);
+      await _cartService.SetCartItemsAsync(UserID, cartItems, ct);
     }
     catch (Exception ex)
     {
@@ -70,10 +69,10 @@ public class CartController : ControllerBase
     {
       Guid UserID = GetUserID();
 
-      int cartID = await _cartRepo.CreateAsync(UserID);
+      int? cartID = await _cartRepo.CreateAsync(UserID);
 
-      await _cartRepo.RemoveCartItemsAsync(cartID);
-      
+      await _cartRepo.RemoveCartItemsAsync(cartID.Value);
+
     }
     catch (Exception ex)
     {
@@ -93,7 +92,13 @@ public class CartController : ControllerBase
 
     try
     {
-      await _cartService.PlaceOrder(new Order(createOrderParam.ShippingAddressID, CustomerID), ct);
+      Order order = new Order(createOrderParam.ShippingAddressID, CustomerID);
+
+      order.ID = await _cartService.PlaceOrder(new Order(createOrderParam.ShippingAddressID, CustomerID), ct);
+
+      string paymentUrl = await _paymentService.GenerateZainCashURL(order);
+
+      return Redirect(paymentUrl);
     }
     catch (Exception ex)
     {
@@ -101,7 +106,6 @@ public class CartController : ControllerBase
       return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
     }
 
-    return Ok();
   }
 
 }

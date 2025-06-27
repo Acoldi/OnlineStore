@@ -14,12 +14,13 @@ public class OrderItemRepo : IOrderItemRepo
     _connection = connectionFactory.CreateSqlConnection().Result;
   }
 
+ 
   public async Task<int> CreateAsync(OrderItem param, CancellationToken? ct = null)
   {
     if (ct?.IsCancellationRequested == true)
       throw new InvalidOperationException(ct.Value.ToString());
 
-    return await _connection.ExecuteAsync("SP_AddOrderItemToCart", param: param, commandType: System.Data.CommandType.StoredProcedure);
+    return await _connection.QuerySingleAsync("SP_AddOrderItemToCart", param: param, commandType: System.Data.CommandType.StoredProcedure);
   }
 
   public async Task<bool> CreateMultipleAsync(List<OrderItem> OrderItems, CancellationToken? ct)

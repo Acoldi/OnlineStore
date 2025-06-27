@@ -5,15 +5,13 @@ public class Customization
 {
   public int ID { get; set; }
   public required int CustomizationChoiceID { get; set; }
-  public required int OrderItemID { get; set; }
-  public required decimal ExtraCost { get; set; }
+  public required int ItemID { get; set; }
 
   [SetsRequiredMembers]
-  public Customization(int CustomizationChoiceID, int orderItemID, decimal extraCost)
+  public Customization(int CustomizationChoiceID, int ItemID)
   {
     this.CustomizationChoiceID = CustomizationChoiceID;
-    OrderItemID = OrderItemID;
-    ExtraCost = extraCost;
+    this.ItemID = this.ItemID;
   }
   public Customization() { }
 }

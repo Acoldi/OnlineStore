@@ -1,6 +1,7 @@
 ﻿using OnlineStore.Core.DTOs;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
+using OnlineStore.Core.InterfacesAndServices.Payment;
 using Serilog;
 
 namespace OnlineStore.Core.InterfacesAndServices;
@@ -9,6 +10,7 @@ public class CartService : ICartService
   private readonly IOrderRepo _orderRepo;
   private readonly IOrderItemRepo _orderItemRepo;
   private readonly IProductRepo _productRepo;
+  private readonly IPaymentService _paymentService;
   ICartRepo _cartRepo;
   ICustomizationRepo _customizationRepo;
 
@@ -17,13 +19,15 @@ public class CartService : ICartService
       IOrderRepo orderService,
       IOrderItemRepo orderItem,
       IProductRepo productService,
-      ICustomizationRepo customizationRepo)
+      ICustomizationRepo customizationRepo,
+      IPaymentService paymentService)
   {
     _orderRepo = orderService;
     _orderItemRepo = orderItem;
     _productRepo = productService;
     _cartRepo = cartRepo;
     _customizationRepo = customizationRepo;
+    _paymentService = paymentService;
   }
   /// <summary>
   /// Removes all items in the user cart and add new orderItems
@@ -32,7 +36,7 @@ public class CartService : ICartService
   /// <param name="CartItems"></param>
   /// <param name="ct"></param>
   /// <returns></returns>
-  public async Task<bool> SetItemsAsync(
+  public async Task<bool> SetCartItemsAsync(
     Guid UserID,
     List<CartItem> CartItems,
     CancellationToken ct)
@@ -46,11 +50,9 @@ public class CartService : ICartService
       if (ShoppingCartID == null)
         return false;
 
-      // ToDo: Remove customizations if any!
-      // Remove current items from the cart
+      // Remove current items from the cart and all item-related customizations
       await RemoveAllItemsAsync(ShoppingCartID.Value, ct);
 
-      int NewOrderItemID = 0;
       OrderItem orderItem = new OrderItem();
       Customization customization;
       foreach (CartItem item in CartItems)
@@ -63,7 +65,7 @@ public class CartService : ICartService
           // Price is set on the DB level
         };
 
-        NewOrderItemID = await _orderItemRepo.CreateAsync(orderItem, ct);
+        orderItem.Id = await _orderItemRepo.CreateAsync(orderItem, ct);
 
         // Add customizations for OrderItem
         if (item.ChoicesID != null)
@@ -73,11 +75,10 @@ public class CartService : ICartService
             customization = new Customization()
             {
               CustomizationChoiceID = choiceID,
-              OrderItemID = NewOrderItemID,
-              ExtraCost = await _customizationRepo.GetCustomizationExtraCost(choiceID, item.Quantity)
+              ItemID = orderItem.Id,
             };
 
-            await _customizationRepo.CreateAsync(customization);
+            customization.ID = await _customizationRepo.CreateAsync(customization);
           }
         }
       }
@@ -91,17 +92,19 @@ public class CartService : ICartService
   }
 
 
-  public async Task PlaceOrder(Order order, CancellationToken ct)
+  public async Task<int> PlaceOrder(Order order, CancellationToken ct)
   {
     try
     {
-      await _orderRepo.CreateAsync(order, ct);
+      order.ID = await _orderRepo.CreateAsync(order, ct);
     }
     catch (Exception ex)
     {
       Log.Error(ex, "An error occurred while placing an order.");
       throw;
     }
+
+    return order.ID;
   }
 
   public async Task<List<OrderItem>?> LoadCartItems(Guid UserID, CancellationToken ct)

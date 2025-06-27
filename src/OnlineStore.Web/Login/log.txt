@@ -122,3 +122,9 @@ The statement has been terminated.
 2025-06-16 13:55:34.533 +03:00 [INF] Starting web host
 2025-06-16 13:55:36.618 +03:00 [ERR] The DELETE statement conflicted with the REFERENCE constraint "FK_products_Categories". The conflict occurred in database "E-store_System", table "dbo.products", column 'Category_Id'.
 The statement has been terminated.
+2025-06-21 16:04:47.131 +03:00 [INF] Starting web host
+2025-06-21 16:08:31.692 +03:00 [INF] Starting web host
+2025-06-21 16:10:52.963 +03:00 [INF] Starting web host
+2025-06-21 16:13:14.722 +03:00 [INF] Starting web host
+2025-06-21 21:48:10.781 +03:00 [INF] Starting web host
+2025-06-22 16:46:18.636 +03:00 [INF] Starting web host

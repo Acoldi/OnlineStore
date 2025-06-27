@@ -40,6 +40,13 @@ public class OrderRepo : IOrderRepo
     //return await _connection.QuerySingleAsync<Order>("SP_GetOrderByID", commandType: CommandType.StoredProcedure, param: new { ID = param });
   }
 
+  /// <summary>
+  /// Total amount value is added on the DB level
+  /// </summary>
+  /// <param name="order"></param>
+  /// <param name="cancellationToken"></param>
+  /// <returns></returns>
+  /// <exception cref="OperationCanceledException"></exception>
   public async Task<int> CreateAsync(Order order, CancellationToken? cancellationToken = null)
   {
     if (cancellationToken?.IsCancellationRequested == true)

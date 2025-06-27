@@ -97,6 +97,7 @@ builder.Services.AddScoped<IOrderRepo, OrderRepo>();
 builder.Services.AddScoped<IOrderItemRepo, OrderItemRepo>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<ICartRepo, CartRepo>();
+builder.Services.AddScoped<ICustomizationRepo, CustomizationRepo>();
 
 var app = builder.Build();
 

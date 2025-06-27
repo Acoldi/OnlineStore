@@ -32,6 +32,12 @@ public class CustomizationRepo : ICustomizationRepo
     }
   }
 
+  /// <summary>
+  /// After inserting a new customizatin, the item price is updated on the DB level
+  /// </summary>
+  /// <param name="ID"></param>
+  /// <param name="cancellationToken"></param>
+  /// <returns></returns>
   public async Task<Customization?> GetByIDAsync(int ID, CancellationToken? cancellationToken = null)
   {
     cancellationToken?.ThrowIfCancellationRequested();
@@ -46,6 +52,12 @@ public class CustomizationRepo : ICustomizationRepo
     }
   }
 
+  /// <summary>
+  /// After insertion, Addtional cost is added to the item on the DB level
+  /// </summary>
+  /// <param name="param"></param>
+  /// <param name="cancellationToken"></param>
+  /// <returns></returns>
   public async Task<int> CreateAsync(Customization param, CancellationToken? cancellationToken = null)
   {
     cancellationToken?.ThrowIfCancellationRequested();
@@ -91,16 +103,5 @@ public class CustomizationRepo : ICustomizationRepo
     }
   }
 
-  public async Task<decimal> GetCustomizationExtraCost(int CustomizationChoiceID, int quantity)
-  {
-    using (SqlConnection sqlConnection = await _connectionFactory.CreateSqlConnection())
-    {
-      return await sqlConnection.QuerySingleAsync<decimal>("SP_GetCustomizationExtraCost",
-        new
-        {
-          CustomizationChoiceID,
-          quantity
-        });
-    }
-  }
+  
 }

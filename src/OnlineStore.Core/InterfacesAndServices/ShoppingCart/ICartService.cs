@@ -12,7 +12,7 @@ public interface ICartService
   /// <param name="orderToPlace"></param>
   /// <param name="ct"></param>
   /// <returns></returns>
-  public Task PlaceOrder(Order orderToPlace, CancellationToken ct);
+  public Task<int> PlaceOrder(Order orderToPlace, CancellationToken ct);
 
   /// <summary>
   /// Retruns items in the cart if any
@@ -27,7 +27,7 @@ public interface ICartService
   /// <param name="orderItems"></param>
   /// <param name="ct"></param>
   /// <returns></returns>
-  public Task<bool> SetItemsAsync(Guid UserID, List<CartItem> orderItems, CancellationToken ct);
+  public Task<bool> SetCartItemsAsync(Guid UserID, List<CartItem> orderItems, CancellationToken ct);
 
   /// <summary>
   /// Creates a new cart for the user

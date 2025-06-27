@@ -9,5 +9,4 @@ using OnlineStore.Core.Interfaces.DataAccess;
 namespace OnlineStore.Core.InterfacesAndServices.IRepositories;
 public interface ICustomizationOptionTypesRepo : IDataAccess<CustomizationOptionType, int>
 {
-
 }

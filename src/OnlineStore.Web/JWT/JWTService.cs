@@ -19,14 +19,14 @@ public class JWTService : IJWTService
     _configuration = configuration;
   }
 
-  public string GetJWToken(string userID, enRole Role)
+  public string GenerateJWT(string userID, enRole Role)
   {
 
     SigningCredentials credentials = new SigningCredentials(new SymmetricSecurityKey(
                                       Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecurityKey"] ?? "")),
       SecurityAlgorithms.HmacSha256);
 
-      
+    
     Claim[] claims = new[]
     {
         new Claim(JwtRegisteredClaimNames.Sub, userID.ToString()),

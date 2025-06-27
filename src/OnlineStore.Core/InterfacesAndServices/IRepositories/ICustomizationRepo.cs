@@ -9,5 +9,4 @@ using OnlineStore.Core.Interfaces.DataAccess;
 namespace OnlineStore.Core.InterfacesAndServices.IRepositories;
 public interface ICustomizationRepo : IDataAccess<Customization, int>
 {
-  public Task<decimal> GetCustomizationExtraCost(int customizationChoiceID, int quantity);
 }

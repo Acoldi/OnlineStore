@@ -33,13 +33,12 @@ public class CustomerRepo : ICustomerRepo
     throw new NotImplementedException();
   }
 
-  public Task<Customer?> 
-        (int ID, CancellationToken? cancellationToken = null)
+  public Task<bool> UpdateAsync(Customer param, CancellationToken? cancellationToken = null)
   {
     throw new NotImplementedException();
   }
 
-  public Task<bool> UpdateAsync(Customer param, CancellationToken? cancellationToken = null)
+  public Task<Customer?> GetByIDAsync(int ID, CancellationToken? cancellationToken = null)
   {
     throw new NotImplementedException();
   }

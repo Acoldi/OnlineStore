@@ -34,7 +34,7 @@ public class LoginController : ControllerBase
     LoginDTO? loginDTO = new LoginDTO() { ID = user.ID, email = user.EmailAddress, Password = user.Password, 
       IsActive = user.IsActive, IsAdmin = user.IsAdmin};
 
-    return Ok(_jWTService.GetJWToken(loginDTO.ID.ToString()!, loginDTO.IsAdmin ? enRole.Admin : enRole.User));
+    return Ok(_jWTService.GenerateJWT(loginDTO.ID.ToString()!, loginDTO.IsAdmin ? enRole.Admin : enRole.User));
   }
 
 
@@ -59,7 +59,7 @@ public class LoginController : ControllerBase
       //                         USer id is guid
       Guid NewUserID = await _userRepo.CreateAsync(user, ct);
 
-      return Ok(_jWTService.GetJWToken(NewUserID.ToString(), enRole.User));
+      return Ok(_jWTService.GenerateJWT(NewUserID.ToString(), enRole.User));
     }
   }
 
