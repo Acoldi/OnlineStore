@@ -10,20 +10,21 @@ public enum enOrderStatuses
   Cancelled
 }
 
-public enum enPaymentStatus { 
-  Pending=1,
-  Processing=2,
-  Authorized=3,
-  Completed=4,
-  Failed=5,
-  Cancelled=6,
-  Voided=7,
-  Expired=8,
+public enum enPaymentStatus
+{
+  Pending = 1,
+  Processing = 2,
+  Authorized = 3,
+  Completed = 4,
+  Failed = 5,
+  Cancelled = 6,
+  Voided = 7,
+  Expired = 8,
 }
 
-public enum enPaymentStatusZaincash 
+public enum enPaymentStatusZaincash
 {
-  Pending=1,
+  Pending = 1,
   success,
   completed,
   failed
@@ -31,7 +32,23 @@ public enum enPaymentStatusZaincash
 
 public enum enPaymentMethod
 {
-  Master = 1,
+  MasterVisa = 1,
   ZainCash = 2,
-  Other=3
+  Other = 3
+}
+
+public enum enCurrencies
+{
+  IQD,
+  USD
+}
+
+public enum enTransactionTypes
+{
+  Sale,
+  Auth,
+  Capture,
+  Void,
+  Register,
+  Refund,
 }

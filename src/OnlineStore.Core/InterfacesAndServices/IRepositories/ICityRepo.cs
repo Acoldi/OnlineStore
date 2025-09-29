@@ -7,10 +7,7 @@ using OnlineStore.Core.Entities;
 using OnlineStore.Core.Interfaces.DataAccess;
 
 namespace OnlineStore.Core.InterfacesAndServices.IRepositories;
-public interface IOrderRepo : IDataAccess<Order, int>
+public interface ICityRepo : IDataAccess<City ,int>
 {
-  public Task<Order> GetOrderWithRelatedCategories(int OrderID);
-
-  public Task<List<string>> ItemsCategories(int OrderID);
 
 }

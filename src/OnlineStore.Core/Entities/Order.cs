@@ -1,4 +1,6 @@
 ﻿using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
 using OnlineStore.Core.Enums;
 
 namespace OnlineStore.Core.Entities;
@@ -10,6 +12,8 @@ public class Order
   public int CustomerID { get; set; }
   public decimal? TotalAmount { get; set; }
   public enOrderStatuses OrderStatus { get; set; }
+
+  public List<string>? RelatedCategories { get; set; }
 
   public Order(int shippingAddressID, int customerID)
   {

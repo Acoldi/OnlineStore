@@ -7,18 +7,17 @@ using OnlineStore.Core.Entities;
 using OnlineStore.Core.Enums;
 
 namespace OnlineStore.Core.InterfacesAndServices.Payment;
-public interface IPaymentService
+public interface IZainCashPaymentService
 {
   /// <summary>
   /// Generate a payment URL users can be redirected to and complete their payment
   /// </summary>
   /// <param name="order"></param>
   /// <returns></returns>
-  public Task<string> GenerateZainCashURL(Order order);
+  public Task<string> GenerateZainCashPaymentURL(Order order);
 
   public Task<Dictionary<string, string>> GetZaincashCallBackResults(string token);
 
   public Task<enPaymentStatus> CheckZainCashTransactionStatus(string transactionID);
-
 
 }

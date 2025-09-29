@@ -5,10 +5,15 @@ using Microsoft.OpenApi.Models;
 using OnlineStore.Core.Interfaces.JWT;
 using OnlineStore.Core.InterfacesAndServices;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
+using OnlineStore.Core.InterfacesAndServices.Payment;
 using OnlineStore.Infrastructure.Data;
 using OnlineStore.Infrastructure.Data.RepositoriesImplementation;
 using OnlineStore.Infrastructure.Data.RepositoriesImplementations;
+using OnlineStore.Infrastructure.Options;
+using OnlineStore.Infrastructure.PaymentServices;
 using OnlineStore.Web.JWT;
+using OnlineStore.Web.RepositoriesImplementations;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,15 +73,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
       {
         ValidateIssuer = true,
         ValidateAudience = true,
-        ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
+        ValidateLifetime = true,
         ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
         ValidAudience = builder.Configuration["JwtSettings:audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecurityKey"] ?? ""))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecurityKey"] ?? "")),
       };
 
       options.RequireHttpsMetadata = false;
-      options.MapInboundClaims = true;
+      options.MapInboundClaims = false;
     });
 
 builder.Services.AddAuthorization();
@@ -98,6 +103,18 @@ builder.Services.AddScoped<IOrderItemRepo, OrderItemRepo>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<ICartRepo, CartRepo>();
 builder.Services.AddScoped<ICustomizationRepo, CustomizationRepo>();
+builder.Services.AddScoped<IPaytabPaymentService, PayTabsPaymentService>();
+builder.Services.AddScoped<IZainCashPaymentService, ZainCashPaymentService>();
+builder.Services.AddScoped<IAddressRepo, AddressRepo>();
+builder.Services.AddScoped<ICityRepo, CityRepo>();
+builder.Services.AddScoped<ICustomerRepo, CustomerRepo>();
+builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
+builder.Services.AddScoped<IPaytabPaymentService, PayTabsPaymentService>();
+builder.Services.AddScoped<IZainCashPaymentService, ZainCashPaymentService>();
+builder.Services.AddSingleton<IConfiguration, ConfigurationManager>();
+
+// Using Options pattern
+builder.Services.Configure<PayTabsOptions>(builder.Configuration.GetSection(PayTabsOptions.PayTabs));
 
 var app = builder.Build();
 
@@ -114,9 +131,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication();
-
 app.UseAuthorization();
+app.UseAuthentication();
 
 app.MapControllers();
 

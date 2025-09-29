@@ -38,7 +38,8 @@ public class AddressRepo : IAddressRepo
     if (cancellationToken?.IsCancellationRequested == true)
       throw new OperationCanceledException(cancellationToken.Value);
 
-    return await _connection.QuerySingleOrDefault("SP_AddAddress", commandType: System.Data.CommandType.StoredProcedure, param: param);
+    return await _connection.QuerySingleOrDefault("SP_AddAddress", commandType: System.Data.CommandType.StoredProcedure, param
+      : param);
   }
 
   public async Task<bool> UpdateAsync(Address param, CancellationToken? cancellationToken = null)
@@ -46,7 +47,8 @@ public class AddressRepo : IAddressRepo
     if (cancellationToken?.IsCancellationRequested == true)
       throw new OperationCanceledException(cancellationToken.Value);
 
-    return await _connection.ExecuteAsync("SP_UpdateAddress", new { updatedAddress = param }, null, null, System.Data.CommandType.StoredProcedure) == 1;
+    return await _connection.ExecuteAsync("SP_UpdateAddress", param: param
+    , null, null, System.Data.CommandType.StoredProcedure) == 1;
   }
 
   public async Task<bool> DeleteAsync(int param, CancellationToken? cancellationToken = null)

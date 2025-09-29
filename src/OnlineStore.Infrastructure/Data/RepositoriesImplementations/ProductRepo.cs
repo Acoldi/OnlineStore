@@ -3,6 +3,7 @@ using Dapper;
 using Microsoft.Data.SqlClient;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
+using OnlineStore.Infrastructure.Data.Models;
 
 namespace OnlineStore.Infrastructure.Data.RepositoriesImplementations;
 public class ProductRepo : IProductRepo

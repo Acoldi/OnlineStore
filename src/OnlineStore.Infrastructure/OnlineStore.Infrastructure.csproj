@@ -7,6 +7,18 @@
 
   <ItemGroup>
     <PackageReference Include="Dapper" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.binder" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.json" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Selenium.WebDriver" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" />
   </ItemGroup>
   
   <ItemGroup>

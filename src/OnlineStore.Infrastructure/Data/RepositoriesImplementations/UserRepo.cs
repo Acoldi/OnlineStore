@@ -33,9 +33,11 @@ public class UserRepo : IUserRepo
     return await _connection.QuerySingleAsync<User>("[dbo].[SP_GetUserByEmail]", param: new { email });
   }
 
-  public Task<User?> GetByIDAsync(Guid ID, CancellationToken? cancellationToken = null)
+  public async Task<User?> GetByIDAsync(Guid ID, CancellationToken? cancellationToken = null)
   {
-    throw new NotImplementedException();
+    cancellationToken?.ThrowIfCancellationRequested();
+
+    return await _connection.QuerySingleAsync<User>("[SP_GetUserByID]", ID, commandType: CommandType.StoredProcedure);
   }
 
   public async Task<Guid> CreateAsync(User param, CancellationToken? cancellationToken = null)

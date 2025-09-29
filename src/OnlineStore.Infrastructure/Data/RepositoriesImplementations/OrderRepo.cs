@@ -30,15 +30,27 @@ public class OrderRepo : IOrderRepo
     //return (await _connection.QueryAsync<Order>("SP_GetAllOrderes", commandType: CommandType.StoredProcedure)).ToList();
   }
 
-  public Task<Order?> GetByIDAsync(int param, CancellationToken? cancellationToken = null)
+  public async Task<Order?> GetByIDAsync(int param, CancellationToken? cancellationToken = null)
   {
-    throw new NotImplementedException();
+    if (cancellationToken?.IsCancellationRequested == true)
+      throw new OperationCanceledException(cancellationToken.Value);
 
-    //if (cancellationToken?.IsCancellationRequested == true)
-    //  throw new OperationCanceledException(cancellationToken.Value);
-
-    //return await _connection.QuerySingleAsync<Order>("SP_GetOrderByID", commandType: CommandType.StoredProcedure, param: new { ID = param });
+    return await _connection.QuerySingleAsync<Order>("SP_GetOrderByID", commandType: CommandType.StoredProcedure, param: new { ID = param });
   }
+
+  public async Task<Order> GetOrderWithRelatedCategories(int OrderID)
+  {
+    Order? order = await GetByIDAsync(OrderID);
+
+    if (order != null)
+    {
+      order.RelatedCategories = await ItemsCategories(OrderID);
+      return order;
+    }
+    else
+      throw new InvalidOperationException("No Order with ID: " + OrderID);
+  }
+
 
   /// <summary>
   /// Total amount value is added on the DB level
@@ -75,4 +87,11 @@ public class OrderRepo : IOrderRepo
 
     return await _connection.ExecuteAsync("SP_DeleteOrder", new { ID = param }, null, null, System.Data.CommandType.StoredProcedure) == 1;
   }
+
+  public async Task<List<string>> ItemsCategories(int OrderID)
+  {
+    return [.. await _connection.QueryAsync<string>("SP_GetOrderItemsCategories", commandType: CommandType
+      .StoredProcedure, param: OrderID)];
+  }
+
 }

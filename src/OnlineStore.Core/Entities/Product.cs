@@ -1,34 +1,44 @@
 ﻿namespace OnlineStore.Core.Entities;
-public class Product
-{
-  public int ID { get; set; }
-  public required string Name { get; set; }
-  public string? Description { get; set; }
-  public decimal Price { get; set; }
-  public required string SKU { get ; set; }
-  public int CategoryID { get; set; }
-    public int? CustomizationOptionID { get; set; }
-  public DateTime CreatedAt { get; set; }
-  public bool IsActive { get; set; }
-  public required string SLUG { get; set; }
-  
 
-  public Product(int id, string name, string? description, decimal price, int categoryId, string sku, DateTime createdAt, bool isActive, 
-    string SLUG, int customizationOptionID)
+public partial class Product
+{
+  public int Id { get; set; }
+
+  public required string Name { get; set; }
+
+  public string? Description { get; set; }
+
+  public decimal Price { get; set; }
+
+  public required string Sku { get; set; }
+
+  public int CategoryId { get; set; }
+
+  public required Category Category { get; set; }
+
+  public DateTime CreatedAt { get; set; }
+
+  public string? Slug { get; set; }
+
+  public int? CustomizationOptionId { get; set; }
+
+  public bool? IsActive { get; set; }
+
+  public Product(int id, string name, string? description, decimal price, int categoryId, string sku, DateTime createdAt, bool isActive,
+  string SLUG, int customizationOptionID, Category category)
   {
-    ID = id;
+    Id = id;
     Name = name;
+    Category = category;
     Description = description;
     Price = price;
-    CategoryID = categoryId;
-    SKU = sku;
+    CategoryId = categoryId;
+    Sku = sku;
     CreatedAt = createdAt;
     IsActive = isActive;
-    this.SLUG = SLUG;
-    CustomizationOptionID = customizationOptionID;
+    Slug = SLUG;
+    CustomizationOptionId = customizationOptionID;
   }
 
-  public Product()
-  { }
-
+  public Product() { }
 }

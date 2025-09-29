@@ -10,7 +10,7 @@ public class CartService : ICartService
   private readonly IOrderRepo _orderRepo;
   private readonly IOrderItemRepo _orderItemRepo;
   private readonly IProductRepo _productRepo;
-  private readonly IPaymentService _paymentService;
+  private readonly IZainCashPaymentService _paymentService;
   ICartRepo _cartRepo;
   ICustomizationRepo _customizationRepo;
 
@@ -20,7 +20,7 @@ public class CartService : ICartService
       IOrderItemRepo orderItem,
       IProductRepo productService,
       ICustomizationRepo customizationRepo,
-      IPaymentService paymentService)
+      IZainCashPaymentService paymentService)
   {
     _orderRepo = orderService;
     _orderItemRepo = orderItem;

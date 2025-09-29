@@ -9,7 +9,7 @@ public class Customer
 {
   public int ID { set; get; }
   public DateTime TurnedInAT { get; set; }
-  public int UserID { get; set; }
+  public Guid UserID { get; set; }
 
   public Customer(Guid userID)
   {

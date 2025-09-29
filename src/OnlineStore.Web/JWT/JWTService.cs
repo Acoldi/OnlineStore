@@ -44,9 +44,4 @@ public class JWTService : IJWTService
 
     return jwtSecurityTokenHandler.WriteToken(jwtSecurityToken);
   }
-
-  public ClaimsPrincipal ValidateJWT(string JWT)
-  {
-    throw new NotImplementedException();
-  }
 }
