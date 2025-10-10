@@ -22,6 +22,7 @@ public class CartRepo : ICartRepo
     if (cancellationToken?.IsCancellationRequested == true)
       throw new OperationCanceledException();
 
+    // The procedure the cart id if it's already there, else it creates a new one and returns its id.
     return await _connection.QuerySingleOrDefaultAsync<int?>("SP_CreateShoppingCart", commandType: System.Data.CommandType.StoredProcedure,
       param: new { UserID });
   }

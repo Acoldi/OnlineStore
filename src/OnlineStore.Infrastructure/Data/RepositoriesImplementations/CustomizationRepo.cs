@@ -88,14 +88,30 @@ public class CustomizationRepo : ICustomizationRepo
     }
   }
 
-  public async Task<bool> DeleteAsync(int ID, CancellationToken? cancellationToken = null)
+  public Task<bool> DeleteAsync(int ID, CancellationToken? cancellationToken = null)
+  {
+    throw new NotImplementedException();
+    //cancellationToken?.ThrowIfCancellationRequested();
+
+    //using (IDbConnection connection = await _connectionFactory.CreateSqlConnection())
+    //{
+    //  int rowsAffected = await connection.ExecuteAsync(
+    //      "SP_DeleteCustomizationByItemID",
+    //      param: new { ID },
+    //      commandType: CommandType.StoredProcedure
+    //  );
+    //  return rowsAffected == 1;
+    //}
+  }
+
+  public async Task<bool> DeleteByItemIDAsync(int ID, CancellationToken? cancellationToken = null)
   {
     cancellationToken?.ThrowIfCancellationRequested();
 
     using (IDbConnection connection = await _connectionFactory.CreateSqlConnection())
     {
       int rowsAffected = await connection.ExecuteAsync(
-          "SP_DeleteCustomization",
+          "SP_DeleteCustomizationByItemID",
           param: new { ID },
           commandType: CommandType.StoredProcedure
       );

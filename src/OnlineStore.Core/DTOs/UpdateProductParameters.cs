@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OnlineStore.Core.DTOs.Parameters;
+namespace OnlineStore.Web.DTOs;
 public class UpdateProductParameters
 {
   public int Id { get; set;}

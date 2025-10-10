@@ -2,12 +2,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineStore.Core.DTOs;
-using OnlineStore.Core.DTOs.Parameters;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.Enums;
 using OnlineStore.Core.InterfacesAndServices;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
 using OnlineStore.Core.InterfacesAndServices.Payment;
+using OnlineStore.Web.DTOs;
 
 namespace OnlineStore.Web.Controllers;
 [Route("api/Cart")]
@@ -51,13 +51,13 @@ public class CartController : ControllerBase
   [ProducesResponseType(StatusCodes.Status500InternalServerError)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
   [Authorize(Roles = "Admin")]
-  public async Task<IActionResult> AddItems(List<CartItem> cartItems, CancellationToken ct)
+  public async Task<IActionResult> AddItems(List<OrderItem> OrderItem, CancellationToken ct)
   {
     Guid UserID = GetUserID();
 
     try
     {
-      await _cartService.SetCartItemsAsync(UserID, cartItems, ct);
+      await _cartService.SetCartItemsAsync(UserID, OrderItem, ct);
     }
     catch (Exception ex)
     {

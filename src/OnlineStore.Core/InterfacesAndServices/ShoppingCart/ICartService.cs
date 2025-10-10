@@ -2,6 +2,7 @@
 
 using OnlineStore.Core.DTOs;
 using OnlineStore.Core.Entities;
+using OnlineStore.Web.DTOs;
 
 namespace OnlineStore.Core.InterfacesAndServices;
 public interface ICartService
@@ -27,7 +28,7 @@ public interface ICartService
   /// <param name="orderItems"></param>
   /// <param name="ct"></param>
   /// <returns></returns>
-  public Task<bool> SetCartItemsAsync(Guid UserID, List<CartItem> orderItems, CancellationToken ct);
+  public Task<bool> SetCartItemsAsync(Guid UserID, List<CartItemDto> OrderItems, CancellationToken ct);
 
   /// <summary>
   /// Creates a new cart for the user

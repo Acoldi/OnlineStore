@@ -1,5 +1,6 @@
-﻿namespace OnlineStore.Tests;
+﻿using Xunit
 
+namespace OnlineStore.Tests;
 public class UnitTest1
 {
   [Fact]

@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using OnlineStore.Core.DTOs.Parameters;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
+using OnlineStore.Web.DTOs;
 
 namespace OnlineStore.Web.Controllers;
 [Route("api/Product")]
@@ -43,14 +43,15 @@ public class ProductController : ControllerBase
     product = new Product()
     {
       Name = NewProduct.ProductName,
-      SKU = "NotImplementedYet",
-      SLUG = "NotImplementedYet",
+      Sku = "NotImplementedYet",
+      Slug = "NotImplementedYet",
       CreatedAt = DateTime.Now,
-      CustomizationOptionID = NewProduct.CustomizationOptionID,
-      CategoryID = NewProduct.CategoryID,
+      CustomizationOptionId = NewProduct.CustomizationOptionID,
+      CategoryId = NewProduct.CategoryID,
       Description = NewProduct.Description,
       IsActive = true,
       Price = NewProduct.Price,
+      Category = NewProduct.category
     };
     
     if (await _productService.CreateAsync(product) != 0)

@@ -10,6 +10,8 @@ using OnlineStore.Core.Interfaces.DataAccess;
 namespace OnlineStore.Core.InterfacesAndServices.IRepositories;
 public interface IOrderItemRepo : IDataAccess<OrderItem, int>
 {
+  public Task<OrderItem> CreateAndReturnEntityAsync(OrderItem param, CancellationToken? ct = null)
+
   public Task<bool> CreateMultipleAsync(List<OrderItem> OrderItems, CancellationToken? ct);
 
 }

@@ -2,6 +2,7 @@
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
 using OnlineStore.Core.InterfacesAndServices.Payment;
+using OnlineStore.Web.DTOs;
 using Serilog;
 
 namespace OnlineStore.Core.InterfacesAndServices;
@@ -33,53 +34,51 @@ public class CartService : ICartService
   /// Removes all items in the user cart and add new orderItems
   /// </summary>
   /// <param name="UserID"></param>
-  /// <param name="CartItems"></param>
+  /// <param name="cartItemsDto"></param>
   /// <param name="ct"></param>
   /// <returns></returns>
   public async Task<bool> SetCartItemsAsync(
     Guid UserID,
-    List<CartItem> CartItems,
+    List<CartItemDto> cartItemsDto,
     CancellationToken ct)
   {
     try
     {
-
-      // Get the user's cart id 
+      // Getting the user's cart ID.
       int? ShoppingCartID = await _cartRepo.CreateAsync(UserID, ct);
 
       if (ShoppingCartID == null)
         return false;
 
-      // Remove current items from the cart and all item-related customizations
+      // Remove customizations
+      foreach (CartItemDto item in cartItemsDto)
+      {
+        await _customizationRepo.DeleteByItemIDAsync(item.orderItem.Id);
+      }
+
+      // Remove items
       await RemoveAllItemsAsync(ShoppingCartID.Value, ct);
 
-      OrderItem orderItem = new OrderItem();
+      // Set new order items
+      OrderItem orderItem;
       Customization customization;
-      foreach (CartItem item in CartItems)
+      foreach (CartItemDto item in cartItemsDto)
       {
         orderItem = new OrderItem()
         {
-          ProductID = item.ProductID,
-          Quantity = item.Quantity,
+          OrderID = item.orderItem.Id,
+          ProductID = item.orderItem.ProductID,
+          Quantity = item.orderItem.Quantity,
           ShoppingCartID = ShoppingCartID,
-          // Price is set on the DB level
         };
-
         orderItem.Id = await _orderItemRepo.CreateAsync(orderItem, ct);
 
         // Add customizations for OrderItem
-        if (item.ChoicesID != null)
+        foreach (int choiceid in item.ChoicesID)
         {
-          foreach (int choiceID in item.ChoicesID)
-          {
-            customization = new Customization()
-            {
-              CustomizationChoiceID = choiceID,
-              ItemID = orderItem.Id,
-            };
+          customization = new Customization(choiceid, orderItem.Id, orderItem.);
 
-            customization.ID = await _customizationRepo.CreateAsync(customization);
-          }
+          await _customizationRepo.CreateAsync(customization, ct);
         }
       }
       return true;

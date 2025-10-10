@@ -8,10 +8,12 @@ using Serilog;
 namespace OnlineStore.Infrastructure.Data.RepositoriesImplementations;
 public class OrderItemRepo : IOrderItemRepo
 {
-  SqlConnection _connection;
-  public OrderItemRepo(IConnectionFactory connectionFactory)
+  IConnectionFactory _connectionFactory;
+  IProductRepo _productRepo;
+  public OrderItemRepo(IConnectionFactory connectionFactory, IProductRepo productrepo)
   {
-    _connection = connectionFactory.CreateSqlConnection().Result;
+    _connectionFactory = connectionFactory;
+    _productRepo = productrepo;
   }
 
  
@@ -20,28 +22,44 @@ public class OrderItemRepo : IOrderItemRepo
     if (ct?.IsCancellationRequested == true)
       throw new InvalidOperationException(ct.Value.ToString());
 
-    return await _connection.QuerySingleAsync("SP_AddOrderItemToCart", param: param, commandType: System.Data.CommandType.StoredProcedure);
+    using (SqlConnection sqlConnection = await _connectionFactory.CreateSqlConnection())
+    {
+      return await sqlConnection.QuerySingleAsync("SP_AddOrderItemToCart", param: param, commandType: System.Data.CommandType.StoredProcedure);
+    }
+  }
+ 
+  public async Task<OrderItem> CreateAndReturnEntityAsync(OrderItem param, CancellationToken? ct = null)
+  {
+    if (ct?.IsCancellationRequested == true)
+      throw new InvalidOperationException(ct.Value.ToString());
+
+    using (SqlConnection sqlConnection = await _connectionFactory.CreateSqlConnection())
+    {
+      return await sqlConnection.QuerySingleAsync("SP_AddOrderItemToCartAndReturnIt", param: param, commandType: System.Data.CommandType.StoredProcedure);
+    }
   }
 
   public async Task<bool> CreateMultipleAsync(List<OrderItem> OrderItems, CancellationToken? ct)
   {
-
     int NewOrderItemID = 0;
     try
     {
 
-      foreach (OrderItem item in OrderItems)
+      using (SqlConnection sqlConnection = await _connectionFactory.CreateSqlConnection())
       {
-        if (ct?.IsCancellationRequested == true)
-          throw new InvalidOperationException(ct.Value.ToString());
+        foreach (OrderItem item in OrderItems)
+        {
+          if (ct?.IsCancellationRequested == true)
+            throw new InvalidOperationException(ct.Value.ToString());
 
-        NewOrderItemID = await _connection.QuerySingleAsync<int>("SP_AddOrderItemToCart", param:
-          new
-          {
-            item.ProductID,
-            item.ShoppingCartID,
-            item.Quantity
-          }, commandType: System.Data.CommandType.StoredProcedure);
+          NewOrderItemID = await sqlConnection.QuerySingleAsync<int>("SP_AddOrderItemToCart", param:
+            new
+            {
+              item.ProductID,
+              item.ShoppingCartID,
+              item.Quantity
+            }, commandType: System.Data.CommandType.StoredProcedure);
+        }
       }
     }
     catch (Exception ex)
@@ -61,9 +79,6 @@ public class OrderItemRepo : IOrderItemRepo
   public Task<List<OrderItem>?> GetAsync(CancellationToken? ct = null)
   {
     throw new NotImplementedException();
-    //if (ct?.IsCancellationRequested == true)
-    //  throw new InvalidOperationException(ct.Value.ToString());
-
   }
 
   public Task<bool> UpdateAsync(OrderItem param, CancellationToken? cancellationToken = null)
@@ -71,8 +86,24 @@ public class OrderItemRepo : IOrderItemRepo
     throw new NotImplementedException();
   }
 
-  Task<OrderItem?> IDataAccess<OrderItem, int>.GetByIDAsync(int ID, CancellationToken? cancellationToken)
+  public async Task<OrderItem?> GetByIDAsync(int ID, CancellationToken? ct)
   {
-    throw new NotImplementedException();
+
+    ct?.ThrowIfCancellationRequested();
+    string sql = @"
+  select OrderItems.*, Products.* from OrderItems
+    inner join Products on OrderItems.ProductID = Products.ID";
+
+
+    using (SqlConnection sqlConnection = await _connectionFactory.CreateSqlConnection())
+    {
+      OrderItem? orderItem = sqlConnection.QueryAsync<OrderItem, Product, OrderItem>(sql, (o, p) =>
+      {
+        o.product = p;
+        return o;
+      }, splitOn: "ID").Result.FirstOrDefault();
+
+      return orderItem;
+    }
   }
 }

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using OnlineStore.Core.Enums;
 
-namespace OnlineStore.Core.DTOs.Parameters;
+namespace OnlineStore.Web.DTOs;
 public class CreateOrderParam
 {
   public DateTime CreatedAt { get; set; } = DateTime.Now;

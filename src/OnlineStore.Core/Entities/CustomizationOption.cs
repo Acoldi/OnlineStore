@@ -13,7 +13,7 @@ public class CustomizationOption
   public required int TypeID { get; set; }
   public int ProductID { get; set; }
 
-  [SetsRequiredMembers]
+
   public CustomizationOption(string label, int typeID, int productID)
   {
     Label = label;
