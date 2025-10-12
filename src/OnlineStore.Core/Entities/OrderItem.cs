@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using OnlineStore.Core.InterfacesAndServices.IRepositories;
-
-namespace OnlineStore.Core.Entities;
+﻿namespace OnlineStore.Core.Entities;
 public class OrderItem
 {
   public int Id { get; set; }
-  private int? _ProductID { get; set; }
-  public int? ProductID
+  public int ProductID;
+
+  public Product? product { get; set; }
+  private int? _OrderID { get; set; }
+
+  public int? OrderID
   {
     // When using dapper, I should retrieve both objects from the repository
     // When Using EF, it maps the product property automatically
@@ -20,17 +17,33 @@ public class OrderItem
       {
         throw new ArgumentException("Either ProductID or ShoppingCartID should be null");
       }
-      _ProductID = value;
+      _OrderID = value;
     }
     get
     {
-      return _ProductID;
+      return _OrderID;
     }
   }
-  public Product? product { get; set; }
-  public int? OrderID { get; set; }
   public int Quantity { get; set; }
-  public int? ShoppingCartID { get; set; }
+
+  private int? _ShoppingCartID { get; set; }
+  public int? ShoppingCartID
+  {
+    // When using dapper, I should retrieve both objects from the repository
+    // When Using EF, it maps the product property automatically
+    set
+    {
+      if (value == null && OrderID == null)
+      {
+        throw new ArgumentException("Either ProductID or ShoppingCartID should be null");
+      }
+      _ShoppingCartID = value;
+    }
+    get
+    {
+      return _ShoppingCartID;
+    }
+  }
   public decimal? Price { get; set; }
 
   /// <summary>

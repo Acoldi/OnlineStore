@@ -35,11 +35,17 @@ public class CustomizationOptionRepo : ICustomizationOptionRepo
 
     using (IDbConnection connection = await _connectionFactory.CreateSqlConnection())
     {
-      return await connection.QuerySingleOrDefaultAsync<CustomizationOption>(
-          "SP_GetCustomizationOptionByID",
+      // Relations using Dapper
+      return connection.QueryAsync<CustomizationOption, CustomizationOptionType, CustomizationOption>(
+          "SP_GetCustomizationOptionByID", (co, ct) => 
+          { 
+            co.customizationOptionType = ct;
+            return co;
+          },
           param: new { ID },
-          commandType: CommandType.StoredProcedure
-      );
+          commandType: CommandType.StoredProcedure,
+          splitOn: "ID"
+      ).Result.FirstOrDefault();
     }
   }
 

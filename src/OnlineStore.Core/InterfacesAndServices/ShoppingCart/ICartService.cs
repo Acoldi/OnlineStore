@@ -28,7 +28,7 @@ public interface ICartService
   /// <param name="orderItems"></param>
   /// <param name="ct"></param>
   /// <returns></returns>
-  public Task<bool> SetCartItemsAsync(Guid UserID, List<CartItemDto> OrderItems, CancellationToken ct);
+  public Task<bool> SetCartItemsAsync(Guid UserID, List<CartItemDto> OrderItems, CancellationToken? ct);
 
   /// <summary>
   /// Creates a new cart for the user
@@ -46,5 +46,5 @@ public interface ICartService
   /// <param name="ct"></param>
   /// <returns></returns>
   ///
-  public Task RemoveAllItemsAsync(int shoppingCartID, CancellationToken ct);
+  public Task RemoveAllItemsAsync(int shoppingCartID, CancellationToken? ct);
 }

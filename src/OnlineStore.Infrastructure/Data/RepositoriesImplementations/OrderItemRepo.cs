@@ -24,6 +24,7 @@ public class OrderItemRepo : IOrderItemRepo
 
     using (SqlConnection sqlConnection = await _connectionFactory.CreateSqlConnection())
     {
+      // - [X] This procedure should add the price automatically
       return await sqlConnection.QuerySingleAsync("SP_AddOrderItemToCart", param: param, commandType: System.Data.CommandType.StoredProcedure);
     }
   }

@@ -15,6 +15,6 @@ public interface ICustomizationRepo : IDataAccess<Customization, int>
   /// <param name="ItemID"></param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  public Task<bool> DeleteByItemIDAsync(int ItemID, CancellationToken? cancellationToken = null)
+  public Task<bool> DeleteByItemIDAsync(int ItemID, CancellationToken? cancellationToken = null);
 
 }

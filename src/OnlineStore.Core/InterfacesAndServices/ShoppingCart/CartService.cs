@@ -14,7 +14,7 @@ public class CartService : ICartService
   private readonly IZainCashPaymentService _paymentService;
   ICartRepo _cartRepo;
   ICustomizationRepo _customizationRepo;
-
+  
   public CartService(
       ICartRepo cartRepo,
       IOrderRepo orderService,
@@ -37,10 +37,11 @@ public class CartService : ICartService
   /// <param name="cartItemsDto"></param>
   /// <param name="ct"></param>
   /// <returns></returns>
+  // This method violates the SR (single responsibility) principle
   public async Task<bool> SetCartItemsAsync(
     Guid UserID,
     List<CartItemDto> cartItemsDto,
-    CancellationToken ct)
+    CancellationToken? ct)
   {
     try
     {
@@ -57,26 +58,22 @@ public class CartService : ICartService
       }
 
       // Remove items
-      await RemoveAllItemsAsync(ShoppingCartID.Value, ct);
+      await RemoveAllItemsAsync(ShoppingCartID.Value, null);
 
       // Set new order items
-      OrderItem orderItem;
       Customization customization;
       foreach (CartItemDto item in cartItemsDto)
       {
-        orderItem = new OrderItem()
-        {
-          OrderID = item.orderItem.Id,
-          ProductID = item.orderItem.ProductID,
-          Quantity = item.orderItem.Quantity,
-          ShoppingCartID = ShoppingCartID,
-        };
-        orderItem.Id = await _orderItemRepo.CreateAsync(orderItem, ct);
+        item.orderItem.Id = await _orderItemRepo.CreateAsync(item.orderItem, ct);
 
         // Add customizations for OrderItem
         foreach (int choiceid in item.ChoicesID)
         {
-          customization = new Customization(choiceid, orderItem.Id, orderItem.);
+          customization = new Customization()
+          {
+            CustomizationChoiceID = choiceid,
+            OrderItemID = item.orderItem.Id
+          };
 
           await _customizationRepo.CreateAsync(customization, ct);
         }
@@ -111,7 +108,7 @@ public class CartService : ICartService
     return await _cartRepo.GetCartItemsAsync(UserID);
   }
 
-  public async Task RemoveAllItemsAsync(int ShoppingCartID, CancellationToken ct)
+  public async Task RemoveAllItemsAsync(int ShoppingCartID, CancellationToken? ct)
   {
     await _cartRepo.RemoveCartItemsAsync(ShoppingCartID);
   }

@@ -1,24 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace OnlineStore.Core.Entities;
+﻿namespace OnlineStore.Core.Entities;
 public class CustomizationOption
 {
   public int ID { get; set; }
   public required string Label { get; set; }
   public required int TypeID { get; set; }
+  public CustomizationOptionType? customizationOptionType { get; set; }
   public int ProductID { get; set; }
+  public decimal AdditionalCost { get; set; }
 
-
-  public CustomizationOption(string label, int typeID, int productID)
+  public CustomizationOption(string label, int typeID, int productID, decimal additionalCost)
   {
     Label = label;
     TypeID = typeID;
     ProductID = productID;
+    AdditionalCost = additionalCost;
   }
 
   public CustomizationOption() { }

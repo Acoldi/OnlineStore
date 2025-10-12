@@ -51,7 +51,7 @@ public class CartController : ControllerBase
   [ProducesResponseType(StatusCodes.Status500InternalServerError)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
   [Authorize(Roles = "Admin")]
-  public async Task<IActionResult> AddItems(List<OrderItem> OrderItem, CancellationToken ct)
+  public async Task<IActionResult> AddItems(List<CartItemDto> OrderItem, CancellationToken ct)
   {
     Guid UserID = GetUserID();
 
