@@ -88,7 +88,6 @@ builder.Services.AddAuthorization();
 
 
 // Access the configuration
-builder.Configuration.AddJsonFile("appsettings.json");
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddScoped<OnlineStore.Infrastructure.Data.IConnectionFactory>
   (_ => new ConnectionStringFactory(connectionString));
@@ -111,7 +110,6 @@ builder.Services.AddScoped<ICustomerRepo, CustomerRepo>();
 builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
 builder.Services.AddScoped<IPaytabPaymentService, PayTabsPaymentService>();
 builder.Services.AddScoped<IZainCashPaymentService, ZainCashPaymentService>();
-builder.Services.AddSingleton<IConfiguration, ConfigurationManager>();
 
 // Using Options pattern
 builder.Services.Configure<PayTabsOptions>(builder.Configuration.GetSection(PayTabsOptions.PayTabs));

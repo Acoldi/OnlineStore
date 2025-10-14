@@ -1,4 +1,5 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using System.Configuration;
+using System.IdentityModel.Tokens.Jwt;
 using System.Runtime.ExceptionServices;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -21,8 +22,9 @@ public class JWTService : IJWTService
 
   public string GenerateJWT(string userID, enRole Role)
   {
+    if (_configuration["JwtSettings:SecurityKey"] == null) throw new ConfigurationErrorsException("SecurityKey can't be null");
 
-    SigningCredentials credentials = new SigningCredentials(new SymmetricSecurityKey(
+      SigningCredentials credentials = new SigningCredentials(new SymmetricSecurityKey(
                                       Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecurityKey"] ?? "")),
       SecurityAlgorithms.HmacSha256);
 

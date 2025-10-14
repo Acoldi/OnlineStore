@@ -28,7 +28,7 @@ public class ProductController : ControllerBase
     return Ok(result);
   }
 
-  [HttpPost("{NewProduct}", Name = "AddProduct")]
+  [HttpPost("Create", Name = "AddProduct")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [Authorize(Roles = "Admin")]
   public async Task<IActionResult> AddProductAsync(AddProductParameters NewProduct)

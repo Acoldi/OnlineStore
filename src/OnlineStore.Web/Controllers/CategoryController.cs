@@ -106,7 +106,7 @@ public class CategoryController : ControllerBase
     try
     {
       await _categoryService.UpdateAsync(category, ct);
-      return NoContent();      
+      return NoContent();
     }
     catch (Exception e)
     {
