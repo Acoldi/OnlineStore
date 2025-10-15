@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Authentication.OAuth;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.VisualStudio.TestPlatform.TestHost;
+using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using OnlineStore.Core.Entities;
 
@@ -12,7 +12,8 @@ public class ProductControllerTest : IClassFixture<WebApplicationFactory<Program
 
   public ProductControllerTest(WebApplicationFactory<Program> applicationFactory)
   {
-    _applicationFactory = applicationFactory;
+    _applicationFactory = applicationFactory.WithWebHostBuilder(
+      (configuration) => configuration.UseEnvironment(Environments.Development));
   }
 
   [Fact]
@@ -22,10 +23,11 @@ public class ProductControllerTest : IClassFixture<WebApplicationFactory<Program
     HttpClient httpClient = _applicationFactory.CreateClient();
 
     // Act
-    HttpResponseMessage httpResponseMessage = await httpClient.GetAsync("/api/products/All Products");
+    HttpResponseMessage httpResponseMessage = await httpClient.GetAsync("/api/product/AllProducts");
 
     // Assert
     Assert.NotNull(httpResponseMessage.Content);
+    Assert.True(httpResponseMessage.IsSuccessStatusCode);
   }
 
   [Fact]
@@ -45,7 +47,7 @@ public class ProductControllerTest : IClassFixture<WebApplicationFactory<Program
 
     StringContent stringContent = new StringContent(content, System.Text.Encoding.UTF8, "application/json");
 
-    HttpResponseMessage responseMessage = await httpClient.PostAsync("/api/products/Create", stringContent);
+    HttpResponseMessage responseMessage = await httpClient.PostAsync("/api/Product/Create", stringContent);
 
     // Assert
     Assert.NotNull(responseMessage.Content);

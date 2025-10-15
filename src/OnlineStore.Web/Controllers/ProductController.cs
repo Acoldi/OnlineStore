@@ -18,8 +18,8 @@ public class ProductController : ControllerBase
     _productService = productService;
   }
 
-  [Authorize(Roles = "Admin")]
-  [HttpGet("All products", Name = "GetAllProducts")]
+  //[Authorize(Roles = "Admin")]
+  [HttpGet("AllProducts", Name = "GetAllProducts")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status404NotFound)]
   public async Task<IActionResult> GetAllProductsAsync()
@@ -30,7 +30,7 @@ public class ProductController : ControllerBase
 
   [HttpPost("Create", Name = "AddProduct")]
   [ProducesResponseType(StatusCodes.Status200OK)]
-  [Authorize(Roles = "Admin")]
+  //[Authorize(Roles = "Admin")]
   public async Task<IActionResult> AddProductAsync(AddProductParameters NewProduct)
   {
     Product? product = await _productService.GetByNameAsync(NewProduct.ProductName);
