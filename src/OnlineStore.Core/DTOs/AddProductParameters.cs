@@ -12,6 +12,5 @@ public class AddProductParameters
   public string? Description { get; set; }
   public decimal Price { get; set; }
   public int CategoryID { get; set;}
-  public required Category category { get; set; }
   public int? CustomizationOptionID { get; set; }
 }

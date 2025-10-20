@@ -19,9 +19,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 var logger = Log.Logger = new LoggerConfiguration()
   .Enrich.FromLogContext()
-  //.WriteTo.File("Logs/log.txt")
+  .WriteTo.File("Logs/log.txt")
   .WriteTo.Console()
-  .WriteTo.File("Login/log.txt")
+  //.WriteTo.File("Login/log.txt")
   .CreateLogger();
 
 logger.Information("Starting web host");

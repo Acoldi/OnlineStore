@@ -1,9 +1,12 @@
 ﻿using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.IdentityModel.Tokens;
 using OnlineStore.Core.Entities;
+using OnlineStore.Core.InterfacesAndServices;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
 using OnlineStore.Infrastructure.Data.Models;
+using OnlineStore.Web.DTOs;
 
 namespace OnlineStore.Infrastructure.Data.RepositoriesImplementations;
 public class ProductRepo : IProductRepo
@@ -80,8 +83,7 @@ public class ProductRepo : IProductRepo
 
   public async Task<int> CreateAsync(Product param, CancellationToken? cancellationToken = null)
   {
-    if (cancellationToken?.IsCancellationRequested == true)
-      throw new OperationCanceledException();
+    cancellationToken?.ThrowIfCancellationRequested();
 
     return await _connection.QuerySingleAsync<int>("SP_AddProduct", commandType: CommandType.StoredProcedure,
     param: param);
