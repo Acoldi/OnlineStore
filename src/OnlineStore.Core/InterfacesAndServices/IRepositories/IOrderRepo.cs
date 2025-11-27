@@ -9,8 +9,6 @@ using OnlineStore.Core.Interfaces.DataAccess;
 namespace OnlineStore.Core.InterfacesAndServices.IRepositories;
 public interface IOrderRepo : IDataAccess<Order, int>
 {
-  public Task<Order> GetOrderWithRelatedCategories(int OrderID);
-
-  public Task<List<string>> ItemsCategories(int OrderID);
+  public Task<List<string>> GeCategoriesRelatedToOrder(int OrderID);
 
 }

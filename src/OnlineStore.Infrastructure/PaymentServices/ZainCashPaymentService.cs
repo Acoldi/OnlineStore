@@ -1,192 +1,121 @@
-﻿using System.Text;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Net.Sockets;
+using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
-using Azure;
+using Microsoft.IdentityModel.Tokens;
+using OnlineStore.Core.DTOs.PaymentDtos;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.Enums;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
-using OnlineStore.Core.InterfacesAndServices.Payment;
+using OnlineStore.Core.InterfacesAndServices.PaymentServices;
+using OnlineStore.Infrastructure.DTOs;
+using OnlineStore.Infrastructure.Mappers;
+using OnlineStore.Infrastructure.Options;
+using Serilog;
+
 
 namespace OnlineStore.Infrastructure.PaymentServices;
-public class ZainCashPaymentService : IZainCashPaymentService
+public class ZainCashPaymentService : IPaymentService
 {
-  private readonly string serviceType = "Order";
-  private readonly double MSISDN_Test = 9647835077893;
-  private readonly string RedirectURL_Test = "HTTP://domain/api/Payment/ZainCachCallback.com";
-  private readonly string secret_Test = "$2y$10$hBbAZo2GfSSvyqAyV2SaqOfYewgYpfR1O19gIh4SqyGWdmySZYPuS";
-  private readonly string merchantID_Test = "5ffacf6612b5777c6d44266f";
-  private readonly string Language = "en"; // or ar...
+  private const string InitialzePaymentUrl = "https://test.zaincash.iq/transaction/init";
+  private const string PaymentUrl = "https://test.zaincash.iq/transaction/pay?id=";
   private readonly IPaymentRepo _paymentRepo;
-  public ZainCashPaymentService(IPaymentRepo paymentRepo)
+  private readonly ZainCashOptions _zainCashOptions;
+  private readonly HttpClient _httpClient;
+  private readonly IOrderRepo _orderRepo;
+  public ZainCashPaymentService(IPaymentRepo paymentRepo, ZainCashOptions zainCashOptions,
+    HttpClient httpClient, IOrderRepo orderRepo)
   {
     _paymentRepo = paymentRepo;
+    _zainCashOptions = zainCashOptions;
+    _httpClient = httpClient;
+    _orderRepo = orderRepo;
   }
 
-  public async Task<string> GenerateZainCashPaymentURL(Order order)
+  public async Task<string> GenereateTransactionURL(Order order, CustomerDetailsDto? customerDetailsDto)
   {
-    if (order.TotalAmount == null)
-      throw new Exception("Total amount can't be null");
-
-    return await _generate_zaincash_url(order, order.TotalAmount.Value, false);
-  }
-
-  private async Task<string> _generate_zaincash_url(Order order, decimal amount, bool isdollar)
-  {
-    //Change currency to dollar if required
-    int new_amount;
-    if (isdollar) { new_amount = (int)(amount * 1300); } else { new_amount = (int)amount; }
-
-    //Setting expiration of token
-    var iat = (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
-    var exp = (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds + 60 * 60 * 4;
-
-    //Generate the data array
-    IDictionary<string, object> dataarray = new Dictionary<string, object>();
-    dataarray.Add("amount", new_amount);
-    dataarray.Add("serviceType", serviceType);
-    dataarray.Add("msisdn", MSISDN_Test);
-    dataarray.Add("orderId", order.ID);
-    dataarray.Add("redirectUrl", RedirectURL_Test);
-    dataarray.Add("iat", iat);
-    dataarray.Add("exp", exp);
-
-    //Generating token
-    var token = Jose.JWT.Encode(dataarray, Encoding.ASCII.GetBytes(secret_Test), Jose.JwsAlgorithm.HS256);
-
-    ////Posting token to ZainCash API to generate Transaction ID
-    //var httpclient = new HttpClient();/* new System.Net.WebClient();*/
-    //var data_to_post = new System.Collections.Specialized.NameValueCollection();
-    //data_to_post["token"] = token;
-    //data_to_post["merchantId"] = merchantID_Test;
-    //data_to_post["lang"] = Language;
-
-    var data_to_post = new Dictionary<string, string>()
+    ZainCashPaymentRequestDto zainCashPaymentRequestDto = new ZainCashPaymentRequestDto()
     {
-      { "token", token},
-      { "merchantId", merchantID_Test},
-      { "lang", Language}
+      amount = (int)order.TotalAmount,
+      msisdn = _zainCashOptions.msisdn,
+      orderId = order.Id,
+      serviceType = _zainCashOptions.serviceType,
+      redirectUrl = _zainCashOptions.redirectUrl,
     };
 
-    var formUrlEncodedContent = new FormUrlEncodedContent(data_to_post);
+    JwtSecurityTokenHandler jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
 
-    var httpClient = new HttpClient();
-    var response = await httpClient.PostAsync
-      ("https://api.zaincash.iq/transaction/init", formUrlEncodedContent);
+    SymmetricSecurityKey symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_zainCashOptions.secret));
+
+    SigningCredentials signingCredentials = new SigningCredentials(symmetricSecurityKey, SecurityAlgorithms.HmacSha256);
+
+    Claim[] claims = new[]
+    {
+      new Claim("amount", zainCashPaymentRequestDto.amount.ToString()),
+      new Claim("msisdn", zainCashPaymentRequestDto.msisdn),
+      new Claim("orderId", zainCashPaymentRequestDto.orderId.ToString()),
+      new Claim("serviceType", zainCashPaymentRequestDto.serviceType),
+      new Claim("redirectUrl", zainCashPaymentRequestDto.redirectUrl),
+      new Claim(JwtRegisteredClaimNames.Iat, DateTime.Now.ToString()),
+      new Claim(JwtRegisteredClaimNames.Exp, DateTime.Now.AddHours(4).ToString()),
+    };
+
+    JwtSecurityToken jwtSecurityToken = new JwtSecurityToken(claims: claims, signingCredentials: signingCredentials);
+
+    string token = jwtSecurityTokenHandler.WriteToken(jwtSecurityToken);
+
+    FormUrlEncodedContent data = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>()
+    {
+      new KeyValuePair<string, string>( "token", token),
+      new KeyValuePair<string, string>( "merchantId", _zainCashOptions.merchantId),
+      new KeyValuePair<string, string>( "lang", "ar"),
+    });
+
+    HttpResponseMessage response = await _httpClient.PostAsync
+      (InitialzePaymentUrl, data);
 
     //Parse JSON response to Object
-    var responsee = await response.Content.ReadAsStringAsync();
+    string responsee = await response.Content.ReadAsStringAsync();
 
-    var jsona = JsonSerializer.Deserialize<JsonElement>(responsee);
+    JsonElement jsona = JsonSerializer.Deserialize<JsonElement>(responsee);
 
-    var transactionID = jsona.GetProperty("id").GetString()!;
+    string transactionID = jsona.GetProperty("id").GetString() ?? "";
 
-    if (transactionID == null)
+    if (transactionID.IsNullOrEmpty())
       throw new Exception("missing transaction id");
 
-    // Createa a payment record
-    await _paymentRepo.CreateAsync(new Core.Entities.Payment()
-    {
-      Amount = amount,
-      CreatedAt = DateTime.UtcNow,
-      Method = enPaymentMethod.ZainCash,
-      OrderID = order.ID,
-      Status = enPaymentStatus.Pending,
-      TransactionID = transactionID,
-      UpdatedAt = DateTime.UtcNow,
-    }, null);
-
-    //Return final URL
-    return "https://api.zaincash.iq/transaction/pay?id=" + transactionID;
+    return PaymentUrl + transactionID;
   }
 
-  /// <summary>
-  /// 
-  /// </summary>
-  /// <param name="token"></param>
-  /// <returns>a dictionary containing the status and a msg error if any</returns>
-  public async Task<Dictionary<string, string>> GetZaincashCallBackResults(string token)
+  public async Task<enPaymentStatus> ProcessPaymentCallBack(PaymentCallBackDto paymentCallBackReturnResponseDto)
   {
-    //Convert token to json, then to object
-    var jsona_res = JsonSerializer.Deserialize<JsonElement>(Jose.JWT.Decode(token, Encoding.ASCII.GetBytes(secret_Test)));
+    Payment payment = PaymentCallBackDtoMapper.toEntity(paymentCallBackReturnResponseDto,
+        (short)enPaymentMethod.ZainCash);
 
-    //Generating response array
-    var status = jsona_res.GetProperty("status").GetString()!;
-    var final = new Dictionary<string, string>()
+    try
     {
-      { "status", status },
-      { "id", jsona_res.GetProperty("id").GetString()! },
-    };
+      payment.Id = await _paymentRepo.CreateAsync(payment);
 
-    if (status == "failed")
-    { final.Add("msg", jsona_res.GetProperty("msg").GetString()!); }
-
-    await _UpdatePaymentStatus(status, jsona_res.GetProperty("id").GetString()!);
-
-    return final;
-  }
-
-  private async Task<enPaymentStatus> _UpdatePaymentStatus(string status, string transactionID)
-  {
-    var enPaymentStatus = new enPaymentStatus();
-
-    if (status != "pending")
-    {
-      // Update payment status record
-      Payment payment = await _paymentRepo.GetByTransactionID(transactionID);
-
-      switch (status)
+      // Checking amount
+      if (payment.Amount != (await _orderRepo.GetByIDAsync(paymentCallBackReturnResponseDto.OrderID))?.TotalAmount)
       {
-        case "success":
-          payment.Status = enPaymentStatus.Completed;
-          enPaymentStatus = enPaymentStatus.Completed;
-          break;
-        case "completed":
-          payment.Status = enPaymentStatus.Completed;
-          enPaymentStatus = enPaymentStatus.Completed;
-          break;
-        case "failed":
-          payment.Status = enPaymentStatus.Failed;
-          enPaymentStatus = enPaymentStatus.Failed;
-          break;
-        default:
-          break;
+        payment.Status = (short)enPaymentStatus.Failed;
+        
+        throw new ArgumentException("Transaction Amount is not the order amount");
       }
 
-      await _paymentRepo.UpdateAsync(payment);
-
-      return enPaymentStatus;
+      return (enPaymentStatus)payment.Status;
     }
-    return enPaymentStatus.Pending;
+    catch (Exception ex)
+    {
+      Log.Logger.Error(nameof(ex), ex.Message);
+      return (enPaymentStatus)payment.Status;
+    }
   }
 
-  public async Task<enPaymentStatus> CheckZainCashTransactionStatus(string transactionID)
+  public Task<bool> ValidateCallBack(string Body, string Signature)
   {
-    var httpClient = new HttpClient();
-
-    var data = new Dictionary<string, object>()
-    {
-      { "id", transactionID},
-      { "msisdn", MSISDN_Test},
-      { "iat", DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds},
-      { "exp", DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds + 60 * 60 * 4},
-    };
-
-    var token = Jose.JWT.Encode(data, Encoding.ASCII.GetBytes(secret_Test), Jose.JwsAlgorithm.HS256);
-
-    var keyValuePairs = new Dictionary<string, string>()
-    {
-      { "token" , token},
-      { "merchantId" , merchantID_Test},
-    };
-
-    var content = new FormUrlEncodedContent(keyValuePairs);
-
-    var response = await httpClient.PostAsync
-      ("https://test.zaincash.iq/transaction/get", content);
-
-    var responsee = await response.Content.ReadAsStringAsync();
-
-    var jsona = JsonSerializer.Deserialize<JsonElement>(responsee);
-
-    return await _UpdatePaymentStatus(jsona.GetProperty("status").GetString()!, jsona.GetProperty("id").GetString()!);
+    throw new NotImplementedException();
   }
 }

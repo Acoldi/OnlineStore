@@ -10,7 +10,7 @@ using OnlineStore.Core.Interfaces.DataAccess;
 namespace OnlineStore.Core.InterfacesAndServices.IRepositories;
 public interface IOrderItemRepo : IDataAccess<OrderItem, int>
 {
-  public Task<OrderItem> CreateAndReturnEntityAsync(OrderItem param, CancellationToken? ct = null);
+  public Task<OrderItem?> CreateAndReturnEntityAsync(OrderItem param, CancellationToken? ct = null);
 
   public Task<bool> CreateMultipleAsync(List<OrderItem> OrderItems, CancellationToken? ct);
   /// <summary>
@@ -21,5 +21,7 @@ public interface IOrderItemRepo : IDataAccess<OrderItem, int>
   /// <returns></returns>
   /// <exception cref="NotImplementedException"></exception>
   public new Task<int> CreateAsync(OrderItem param, CancellationToken? cancellationToken);
+
+  public List<OrderItem> GetAsync(int OrderID);
 
 }

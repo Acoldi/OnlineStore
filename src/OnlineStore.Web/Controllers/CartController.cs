@@ -1,13 +1,11 @@
-﻿using System.Security.Claims;
+﻿using System.Security.Authentication;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineStore.Core.DTOs;
-using OnlineStore.Core.Entities;
+using OnlineStore.Core.DTOs.Items;
 using OnlineStore.Core.Enums;
 using OnlineStore.Core.InterfacesAndServices;
-using OnlineStore.Core.InterfacesAndServices.IRepositories;
-using OnlineStore.Core.InterfacesAndServices.Payment;
-using OnlineStore.Web.DTOs;
 
 namespace OnlineStore.Web.Controllers;
 [Route("api/Cart")]
@@ -15,43 +13,35 @@ namespace OnlineStore.Web.Controllers;
 public class CartController : ControllerBase
 {
   private readonly ICartService _cartService;
-  private readonly ICartRepo _cartRepo;
-  private readonly ICustomerRepo _customerRepo;
-  private readonly IZainCashPaymentService _ZainCashpaymentService;
-  private readonly IPaytabPaymentService _PayTabpaymentService;
-  private readonly IAddressRepo _AddressRepo;
-  private readonly ICityRepo _cityRepo;
-  private readonly IUserRepo _UserRepo;
 
-  public CartController(IUserRepo userRepo, ICityRepo cityRepo, IAddressRepo address, IPaytabPaymentService paytabPaymentService,
-    ICartRepo cartRepo, ICartService cartService, ICustomerRepo customerRepo,
-    IZainCashPaymentService paymentService)
+  public CartController(ICartService cartService)
   {
-    _UserRepo = userRepo;
-    _cityRepo = cityRepo;
     _cartService = cartService;
-    _cartRepo = cartRepo;
-    _customerRepo = customerRepo;
-    _ZainCashpaymentService = paymentService;
-    _PayTabpaymentService = paytabPaymentService;
-    _AddressRepo = address;
   }
 
   private Guid GetUserID()
   {
     string? UserID = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     if (UserID == null)
-      throw new Exception("Tampered with JWT!");
+      throw new AuthenticationException();
 
-    return new Guid(UserID);
+    Guid id = new Guid();
+    Guid.TryParse(UserID, out id);
+    return id;
   }
 
-  [HttpPost("AddItems")]
+  /// <summary>
+  /// Set a new list of cart items, if there are any current items, they are overriden
+  /// </summary>
+  /// <param name="OrderItem"></param>
+  /// <param name="ct"></param>
+  /// <returns></returns>
+  [HttpPost("SetItems")]
   [ProducesResponseType(200)]
   [ProducesResponseType(StatusCodes.Status500InternalServerError)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
   [Authorize(Roles = "Admin")]
-  public async Task<IActionResult> AddItems(List<CartItemDto> OrderItem, CancellationToken ct)
+  public async Task<IActionResult> SetItems(List<CartItemDto> OrderItem, CancellationToken ct)
   {
     Guid UserID = GetUserID();
 
@@ -68,21 +58,41 @@ public class CartController : ControllerBase
     return Ok();
   }
 
+  [HttpPost("AddItems")]
+  [ProducesResponseType(200)]
+  [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+  [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+  [Authorize]
+  public async Task<IActionResult> AddItems(List<CartItemDto> OrderItems, CancellationToken ct)
+  {
+    Guid UserID = GetUserID();
+
+    try
+    {
+      await _cartService.SetCartItemsAsync(UserID, OrderItems, ct);
+    }
+    catch (Exception ex)
+    {
+      Log.Logger.Error(ex.Message);
+      return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+    }
+
+    return Ok();
+  }
+
 
   [HttpDelete("DeleteItemsFromCart")]
   [ProducesResponseType(200)]
   [ProducesResponseType(StatusCodes.Status500InternalServerError)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
   [Authorize(Roles = "Admin")]
-  public async Task<IActionResult> DeleteItemsFromCart(CancellationToken ct)
+  public async Task<IActionResult> DeleteItemsFromCart(List<int> ItemIDs, CancellationToken ct)
   {
     try
     {
       Guid UserID = GetUserID();
 
-      int? cartID = await _cartRepo.CreateAsync(UserID);
-
-      await _cartRepo.RemoveCartItemsAsync(cartID.Value);
+      await _cartService.RemoveItemsFromCartAsync(UserID, ItemIDs, ct);
 
     }
     catch (Exception ex)
@@ -97,50 +107,21 @@ public class CartController : ControllerBase
   [HttpPost("PlaceOrder")]
   [ProducesResponseType(200)]
   [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-  public async Task<IActionResult> PlaceOrder(CreateOrderParam createOrderParam, 
+  [Authorize(Roles = "Admin")]
+
+  public async Task<IActionResult> PlaceOrder(OrderDto createOrderParam,
     enPaymentMethod enPaymentMethod, CancellationToken ct)
   {
 
     try
     {
       Guid userID = GetUserID();
-      int CustomerID = await _customerRepo.CreateAsync(new Customer(userID), ct);
-      Order order = new Order(createOrderParam.ShippingAddressID, CustomerID);
 
-      order.ID = await _cartService.PlaceOrder(new Order(createOrderParam.ShippingAddressID, CustomerID), ct);
-      User? user = await _UserRepo.GetByIDAsync(userID);
+      string? paymentUrl = await _cartService.PlaceOrder(userID, createOrderParam, enPaymentMethod, ct);
 
-      string paymentUrl = "";
-      switch (enPaymentMethod)
+      if (paymentUrl == null)
       {
-        case enPaymentMethod.MasterVisa:
-
-          Address? address = await _AddressRepo.GetByIDAsync(order.ShippingAddressID);
-
-          if (address == null) return BadRequest("Shipping Address is not provided");
-          if (user!.PhoneNumber == null) return BadRequest("Phone number is not provided");
-
-          paymentUrl = await _PayTabpaymentService.GenereateTransactionURL(order,
-            new Core.ValueObjects.CustomerDetails()
-            {
-              city = address.CityName!,
-              country = address.CountryName!,
-              email = user!.EmailAddress,
-              name = user.FirstName + " " + user.LastName,
-              phone = user.PhoneNumber,
-              state = address.StateName!,
-              street1 = "" // ToDo: check with PayTabs if this is accepted
-              ,zip = "10011"
-            });
-
-          break;
-        case enPaymentMethod.ZainCash:
-          paymentUrl = await _ZainCashpaymentService.GenerateZainCashPaymentURL(order);
-          break;
-        case enPaymentMethod.Other:
-          break;
-        default:
-          break;
+        return StatusCode(StatusCodes.Status500InternalServerError);
       }
 
       return Redirect(paymentUrl);
@@ -152,5 +133,4 @@ public class CartController : ControllerBase
     }
 
   }
-
 }

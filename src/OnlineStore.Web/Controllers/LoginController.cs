@@ -1,10 +1,8 @@
-﻿using System.Data;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.Enums;
-using OnlineStore.Core.Interfaces.DataAccess;
-using OnlineStore.Core.Interfaces.JWT;
-using OnlineStore.Core.InterfacesAndServices.IRepositories;
+using OnlineStore.Core.InterfacesAndServices.JWT;
+using OnlineStore.Core.InterfacesAndServices.UserServices;
 using OnlineStore.Web.DTOs;
 
 namespace OnlineStore.Web.Controllers;
@@ -13,26 +11,32 @@ namespace OnlineStore.Web.Controllers;
 public class LoginController : ControllerBase
 {
   IJWTService _jWTService;
-  IUserRepo _userRepo;
+  IUserService _userService;
 
-  public LoginController(IJWTService jWTService, IUserRepo userRepo)
+  public LoginController(IJWTService jWTService, IUserService userService)
   {
     _jWTService = jWTService;
-    _userRepo = userRepo;
+    _userService = userService;
   }
 
-  [HttpGet("Login", Name ="Login")]
+  [HttpGet("Login", Name = "Login")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
   public async Task<IActionResult> Login(string email, string Password, CancellationToken ct)
   {
-    OnlineStore.Core.Entities.User? user = await _userRepo.GetByEmail(email, ct);
+    User? user = await _userService.GetByEmailAsync(email, ct);
 
     if (user == null)
       throw new Exception("User should register first");
 
-    LoginDTO? loginDTO = new LoginDTO() { ID = user.ID, email = user.EmailAddress, Password = user.Password, 
-      IsActive = user.IsActive, IsAdmin = user.IsAdmin};
+    LoginDTO? loginDTO = new LoginDTO()
+    {
+      ID = user.Id,
+      email = user.EmailAddress,
+      Password = user.Password,
+      IsActive = user.IsActive,
+      IsAdmin = user.IsAdmin
+    };
 
     return Ok(_jWTService.GenerateJWT(loginDTO.ID.ToString()!, loginDTO.IsAdmin ? enRole.Admin : enRole.User));
   }
@@ -43,7 +47,7 @@ public class LoginController : ControllerBase
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
   public async Task<IActionResult> Register(string email, string password, CancellationToken ct)
   {
-    Core.Entities.User? user = await _userRepo.GetByEmail(email, ct);
+    User? user = await _userService.GetByEmailAsync(email, ct);
 
     if (user != null)
     {
@@ -51,13 +55,13 @@ public class LoginController : ControllerBase
     }
     else
     {
-      user = new Core.Entities.User()
+      user = new()
       {
         EmailAddress = email,
         Password = password,
       };
-      //                         USer id is guid
-      Guid NewUserID = await _userRepo.CreateAsync(user, ct);
+
+      Guid NewUserID = await _userService.CreateAsync(user, ct);
 
       return Ok(_jWTService.GenerateJWT(NewUserID.ToString(), enRole.User));
     }

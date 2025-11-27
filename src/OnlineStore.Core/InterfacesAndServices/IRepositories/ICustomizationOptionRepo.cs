@@ -9,5 +9,6 @@ using OnlineStore.Core.Interfaces.DataAccess;
 namespace OnlineStore.Core.InterfacesAndServices.IRepositories;
 public interface ICustomizationOptionRepo : IDataAccess<CustomizationOption, int>
 {
-  public Task<List<CustomizationOption>?> GetProductCustomizationOptions();
+  public Task<List<CustomizationOption>?> GetProductCustomizationOptions(int productID);
+
 }

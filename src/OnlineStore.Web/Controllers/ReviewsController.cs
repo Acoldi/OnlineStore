@@ -1,27 +1,29 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Identity.Client;
+using OnlineStore.Core.DTOs;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
+using OnlineStore.Core.InterfacesAndServices.Reviews;
 
 namespace OnlineStore.Web.Controllers;
 [Route("api/Reviews")]
 [ApiController]
 public class ReviewsController : ControllerBase
 {
-  private readonly IReviewRepo _reviewRepo;
-  public ReviewsController(IReviewRepo reviewRepo)
+  private readonly IReviewService _reviewService;
+  public ReviewsController(IReviewService reviewService)
   {
-    _reviewRepo = reviewRepo;
+    _reviewService = reviewService;
   }
 
   [Authorize]
-  [HttpGet("{productId}")]
+  [HttpGet("{reviewID}")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status404NotFound)]
   public async Task<IActionResult> GetReview(int reviewID, CancellationToken cancellationToken)
   {
-    Review? reviews = await _reviewRepo.GetByIDAsync(reviewID, cancellationToken);
+    ReviewDto? reviews = await _reviewService.GetByIDAsync(reviewID, cancellationToken);
 
     if (reviews == null)
     {
@@ -30,13 +32,13 @@ public class ReviewsController : ControllerBase
     return Ok(reviews);
   }
 
-  [Authorize]
   [HttpGet(Name = "GetReviews")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status404NotFound)]
+  [Authorize]
   public async Task<IActionResult> GetReviews(CancellationToken cancellationToken)
   {
-    List<Review>? reviews = await _reviewRepo.GetAsync(cancellationToken);
+    List<ReviewDto>? reviews = await _reviewService.GetAcceptedReviewsAsync(cancellationToken);
 
     if (reviews == null)
     {
@@ -50,50 +52,40 @@ public class ReviewsController : ControllerBase
   [HttpPost]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
-  public async Task<IActionResult> AddReview(Review review, CancellationToken cancellationToken)
+  public async Task<IActionResult> AddReview(ReviewDto review, CancellationToken cancellationToken)
   {
     if (review == null)
     {
       return BadRequest("Invalid review data.");
     }
-    int newId = await _reviewRepo.CreateAsync(review, cancellationToken);
-    return CreatedAtAction(nameof(GetReview), new { ReviewID = review.ID }, newId);
-    //return Created();
+    int newId = await _reviewService.CreateAsync(review, cancellationToken);
+    return CreatedAtAction(nameof(GetReview), review);
   }
 
   [Authorize]
-  [HttpDelete("Delete/{ID}", Name = "Delete")]
+  [HttpDelete("{ID}", Name = "Delete")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
   public async Task<IActionResult> Delte(int ID, CancellationToken cancellationToken)
   {
-    if (!await _reviewRepo.DeleteAsync(ID, cancellationToken))
+    if (!await _reviewService.DeleteAsync(ID, cancellationToken))
     {
       return BadRequest("Review doesn't exist");
     }
     return NoContent();
-    //return Created();
   }
 
   [Authorize]
   [HttpPut("Update/", Name = "Update")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
-  public async Task<IActionResult> Update(Review review, CancellationToken cancellationToken)
+  public async Task<IActionResult> Update(ReviewDto review, CancellationToken cancellationToken)
   {
-    if (!await _reviewRepo.UpdateAsync(review, cancellationToken))
+    if (!await _reviewService.UpdateAsync(review, cancellationToken))
     {
       return BadRequest("Review doesn't exist");
     }
     return NoContent();
-    //return Created();
   }
 
-
-  //[HttpGet("Product")]
-  //[]
-  //public Task<IActionResult> GetProductReviews(int productID, CancellationToken)
-  //{
-  //  _reviewRepo.getprod
-  //}
 }

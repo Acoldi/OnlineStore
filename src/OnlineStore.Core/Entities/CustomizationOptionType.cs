@@ -1,19 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OnlineStore.Core.Entities;
-public class CustomizationOptionType
+
+public partial class CustomizationOptionType
 {
-  public int ID { get; set; }
-  public required string TypeName { get; set; }
+    public int Id { get; set; }
 
-  public CustomizationOptionType(string typename)
-  {
-    this.TypeName = typename;
-  }
+    public string TypeName { get; set; } = null!;
 
-  public CustomizationOptionType() { }
+    public virtual ICollection<CustomizationOption> CustomizationOptions { get; set; } = new List<CustomizationOption>();
 }

@@ -22,14 +22,6 @@ public enum enPaymentStatus
   Expired = 8,
 }
 
-public enum enPaymentStatusZaincash
-{
-  Pending = 1,
-  success,
-  completed,
-  failed
-}
-
 public enum enPaymentMethod
 {
   MasterVisa = 1,
@@ -37,18 +29,3 @@ public enum enPaymentMethod
   Other = 3
 }
 
-public enum enCurrencies
-{
-  IQD,
-  USD
-}
-
-public enum enTransactionTypes
-{
-  Sale,
-  Auth,
-  Capture,
-  Void,
-  Register,
-  Refund,
-}

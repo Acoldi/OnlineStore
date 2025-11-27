@@ -65,7 +65,7 @@ public abstract class BaseRepository<TEntity> /*: IDataAccess<TEntity> where TEn
     T? results = default;
     try
     {
-      results = await _sqlconnection.QuerySingleAsync<T>(sql, param: param, commandType: commandType);
+      results = await _sqlconnection.QuerySingleOrDefaultAsync<T>(sql, param: param, commandType: commandType);
     }
     catch (Exception e)
     {

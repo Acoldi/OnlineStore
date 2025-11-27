@@ -1,17 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Identity.Client;
 
 namespace OnlineStore.Core.Entities;
-public  class City
-{
-  public int Id { get; set; }
-  public required string Name { get; set; } 
-  public int CountryID { get; set; }
-  public int StateID { get; set; }
 
-  public City() { }
+public partial class City
+{
+    public int Id { get; set; }
+
+    public string Name { get; set; } = null!;
+
+    public int CountryId { get; set; }
+
+    public int StateId { get; set; }
+
+    public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();
+
+    public virtual Country Country { get; set; } = null!;
+
+    public virtual State State { get; set; } = null!;
 }

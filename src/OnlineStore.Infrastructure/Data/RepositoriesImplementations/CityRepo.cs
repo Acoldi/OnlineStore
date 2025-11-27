@@ -51,7 +51,7 @@ public class CityRepo : ICityRepo
 
     using (IDbConnection connection = await _connectionFactory.CreateSqlConnection())
     {
-      int newId = await connection.QuerySingleAsync<int>(
+      int newId = await connection.QuerySingleOrDefaultAsync<int>(
           "SP_AddCity", 
           param: City,
           commandType: CommandType.StoredProcedure

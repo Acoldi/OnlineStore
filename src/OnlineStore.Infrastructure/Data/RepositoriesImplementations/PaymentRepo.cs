@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using System.Threading;
 using Dapper;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
@@ -47,9 +46,18 @@ public class PaymentRepo : IPaymentRepo
 
     using (IDbConnection connection = await _connectionFactory.CreateSqlConnection())
     {
-      int newId = await connection.QuerySingleAsync<int>(
-          "SP_AddPayment", 
-          param: payment,
+      int newId = await connection.QuerySingleOrDefaultAsync<int>(
+          "SP_AddPayment",
+          param: new
+          {
+            payment.OrderId,
+            payment.TransactionId,
+            payment.Amount,
+            payment.Status,
+            payment.CreatedAt,
+            payment.Method,
+            payment.UpdatedAt,
+          },
           commandType: CommandType.StoredProcedure
       );
       return newId;
@@ -86,18 +94,18 @@ public class PaymentRepo : IPaymentRepo
     }
   }
 
-  public async Task<Payment> GetByTransactionID(string transactionID, CancellationToken? ct = null)
+  public async Task<Payment?> GetByTransactionID(string transactionID, CancellationToken? ct = null)
   {
-        ct?.ThrowIfCancellationRequested();
+    ct?.ThrowIfCancellationRequested();
 
-        using (IDbConnection connection = await _connectionFactory.CreateSqlConnection())
-        {
-            Payment result = await connection.QuerySingleAsync<Payment>(
-                "SP_DeletePayment",
-                param: new { transactionID },
-                commandType: CommandType.StoredProcedure
-            );
-            return result;
-        }
+    using (IDbConnection connection = await _connectionFactory.CreateSqlConnection())
+    {
+      Payment? result = await connection.QuerySingleOrDefaultAsync<Payment>(
+          "SP_DeletePayment",
+          param: new { transactionID },
+          commandType: CommandType.StoredProcedure
+      );
+      return result;
     }
+  }
 }

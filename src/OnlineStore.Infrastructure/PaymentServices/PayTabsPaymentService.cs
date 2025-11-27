@@ -1,105 +1,130 @@
-﻿using System.Net.Http.Json;
+﻿using System.Configuration;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
-using Microsoft.IdentityModel.Protocols;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using OnlineStore.Core.DTOs;
+using OnlineStore.Core.DTOs.PaymentDtos;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.Enums;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
-using OnlineStore.Core.InterfacesAndServices.Payment;
-using OnlineStore.Core.ValueObjects;
-using OnlineStore.Web.DTOs;
-using System.Configuration;
-using System.Configuration.Internal;
-using System.Collections.Specialized;
-using Microsoft.IdentityModel.Tokens;
-using Jose;
-using Serilog.Core;
+using OnlineStore.Core.InterfacesAndServices.OrderItems;
+using OnlineStore.Core.InterfacesAndServices.PaymentServices;
+using OnlineStore.Core.Options;
+using OnlineStore.Infrastructure.DTOs;
+using OnlineStore.Infrastructure.Mappers;
+using OpenQA.Selenium.BiDi.Input;
 using Serilog;
-using Microsoft.Extensions.Configuration;
-using OnlineStore.Infrastructure.Options;
-using System.Security.Cryptography;
-using System.Runtime.Intrinsics.Arm;
-using System.Text;
-using System.Text.Unicode;
-using Microsoft.Extensions.Options;
 
 namespace OnlineStore.Infrastructure.PaymentServices;
-public class PayTabsPaymentService : IPaytabPaymentService
+public class PayTabsPaymentService : IPaymentService
 {
-  private readonly IOrderRepo _orderRepo;
   private readonly PayTabsOptions _payTabsOptions;
-  public PayTabsPaymentService(IOptions<PayTabsOptions> payTabsOptions ,IConfiguration configuration,IOrderRepo orderRepo ,IPaymentRepo paymentRepo)
+  private readonly IListProductsWithQuantitiesService _listProductsWithQuantities;
+  private readonly IPaymentRepo _paymentRepo;
+  private readonly IOrderRepo _orderRepo;
+
+  public PayTabsPaymentService(IListProductsWithQuantitiesService listProductsWithQuantitiesService,
+    IOptions<PayTabsOptions> payTabsOptions,
+     [FromKeyedServices("PayTab")]IPaymentRepo paymentRepo, IOrderRepo orderRepo)
   {
     _payTabsOptions = payTabsOptions.Value;
+    _listProductsWithQuantities = listProductsWithQuantitiesService;
+    _paymentRepo = paymentRepo;
     _orderRepo = orderRepo;
   }
 
-  static private NameValueCollection? PayTabsSettings = System.Configuration.ConfigurationManager.GetSection("PayTabs") as NameValueCollection;
-  static private readonly string APIKey = PayTabsSettings?["api_key"] ?? "";
-  static private readonly int profile_id = int.Parse(PayTabsSettings?["api_key"] ?? "0");
-  static private readonly string tran_class = PayTabsSettings?["tran_class"] ?? "";
-  static private readonly string tran_type = PayTabsSettings?["tran_type"] ?? "";
-  static private readonly string paypage_lang = PayTabsSettings?["paypage_lang"] ?? "";
-
-  private Dictionary<string, object> RequestPayload = new Dictionary<string, object>()
+  public async Task<string> GenereateTransactionURL(Order order, CustomerDetailsDto? payTabsCustomerDetails)
   {
-    { "profile_id", profile_id},
-    { "tran_type" , tran_type},
-    { "tran_class" , tran_class},
-    { "cart_description" , ""},
-    { "cart_id" , ""}, // Order id
-    { "cart_currency" , ""},
-    { "cart_amount" , 0},
-    { "hide_shipping" , true},
-    { "paypage_lang" , paypage_lang},
-    //{ "callback", "https://OnlineStore/PaytabCallback"},
-    //{ "return" , "https://localhost:300/PaytabReturnPage" },
-  };
-
-  public async Task<string> GenereateTransactionURL(Order order, CustomerDetails payTabsCustomerDetails, string? description = null)
-  {
-    if (order.TotalAmount == null) throw new InvalidOperationException("There is no information about the payment amount within the order");
-    if (APIKey.IsNullOrEmpty()) throw new ConfigurationErrorsException("Api Key is not provided");
-
-    RequestPayload["cart_currency"] = _payTabsOptions.cart_currency;
-    RequestPayload["cart_id"] = order.ID.ToString();
-    RequestPayload["cart_amount"] = order.TotalAmount;
-    RequestPayload.Add("customer_details", payTabsCustomerDetails);
-    RequestPayload[""] = "Items are included in categories: " + 
-      string.Join(", ", await _orderRepo.ItemsCategories(order.ID));
-
-    string content = JsonSerializer.Serialize(RequestPayload);
-
-    HttpClient httpClient = new HttpClient();
-    httpClient.DefaultRequestHeaders.Add("authorization", APIKey);
-
-    httpClient.BaseAddress = new Uri("https://secure-iraq.paytabs.com/");
-
-    HttpResponseMessage httpResponseMessage = await httpClient.PostAsync("payment/request",
-      new StringContent(content));
-
-    JsonElement jsonElement = await httpResponseMessage.Content.ReadFromJsonAsync<JsonElement>();
-
-    string? redirectUrl = jsonElement.GetProperty("redirect_url").GetString();
-
-    if (string.IsNullOrEmpty(redirectUrl))
+    try
     {
-      Log.Logger.Error("redirect url is empty");
-      throw new IntegrityException("redirect_url is empty");
-    }
+      if (_payTabsOptions.server_key.IsNullOrEmpty()) throw new ConfigurationErrorsException("Server key is not provided.");
 
-    return redirectUrl;
+      List<ProductNameQuantity> OrderItemNames =
+        _listProductsWithQuantities.listProductsWithQuantitiesAsync(order.Id);
+
+      string content = JsonSerializer.Serialize(new PaytabPaymentRequestDto()
+      {
+        ProfileId = _payTabsOptions.profile_id,
+        TranType = _payTabsOptions.tran_type,
+        TranClass = _payTabsOptions.tran_class,
+        CartId = order.Id.ToString(),
+        CartCurrency = _payTabsOptions.cart_currency,
+        CartAmount = order.TotalAmount,
+        CartDescription = JsonSerializer.Serialize(OrderItemNames),
+        customerDetailsDto = payTabsCustomerDetails ?? new CustomerDetailsDto(),
+        CallBack = _payTabsOptions.callback,
+        PaypageLang = "en",
+      });
+
+      HttpClient httpClient = new HttpClient();
+      httpClient.DefaultRequestHeaders.Add("authorization", _payTabsOptions.server_key);
+
+      httpClient.BaseAddress = new Uri(_payTabsOptions.BaseAddress);
+
+      HttpResponseMessage httpResponseMessage = await httpClient.PostAsync("payment/request",
+        new StringContent(content));
+
+      if (httpResponseMessage.IsSuccessStatusCode)
+      {
+        JsonElement jsonElement = await httpResponseMessage.Content.ReadFromJsonAsync<JsonElement>();
+        return jsonElement.GetProperty("redirect_url").GetString()!;
+      }
+      return "";
+    }
+    catch
+    (Exception ex)
+    {
+      Log.Logger.Error(nameof(ex), ex.Message);
+      return "";
+    }
   }
 
-  public bool ValidateCallBackPayloadSignature(PayTabCallBackReturnResponse payTabCallBackReturnResponse, string RequestSignature)
+  public async Task<enPaymentStatus> ProcessPaymentCallBack(PaymentCallBackDto pcDto)
   {
-    using (HMACSHA256 hMACSHA = new HMACSHA256(Encoding.UTF8.GetBytes(_payTabsOptions.api_key)))
+    try
     {
-      byte[] HashedResults = hMACSHA.ComputeHash(JsonSerializer.SerializeToUtf8Bytes(payTabCallBackReturnResponse));
+      Payment payment = PaymentCallBackDtoMapper.toEntity(pcDto, (short)enPaymentMethod.MasterVisa);
 
-      if (Convert.ToHexString(HashedResults) == RequestSignature)
-        return true;
+      payment.Id = await _paymentRepo.CreateAsync(payment);
+
+      await validatePaymentAsync(payment);
+
+      return (enPaymentStatus)payment.Status;
+    }
+    catch (Exception ex)
+    {
+      Log.Logger.Error(nameof(ex), ex.Message);
+      return enPaymentStatus.Failed;
+    }
+  }
+
+  public Task<bool> ValidateCallBack(string Body, string Signature)
+  {
+    using (HMACSHA256 hMACSHA = new HMACSHA256(Encoding.UTF8.GetBytes(_payTabsOptions.server_key)))
+    {
+      byte[] HashedResults = hMACSHA.ComputeHash(Encoding.UTF8.GetBytes(Body));
+
+      if (string.Equals(Convert.ToHexString(HashedResults), Signature, StringComparison.OrdinalIgnoreCase))
+      {
+        return Task.FromResult(true);
+      }
       else
-        return false;
+        return Task.FromResult(false);
+    }
+  }
+
+  private async Task validatePaymentAsync(Payment payment)
+  {
+    Order order = await _orderRepo.GetByIDAsync(payment.OrderId) ?? 
+      throw new ArgumentException($"Order not found, \n\ttransaction ID: {payment.OrderId}.");
+
+    if (payment.Amount != order.TotalAmount)
+    {
+      payment.Status = (short)enPaymentStatus.Failed;
     }
 
   }

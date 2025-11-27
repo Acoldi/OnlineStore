@@ -1,20 +1,23 @@
-﻿namespace OnlineStore.Core.Entities;
-public class CustomizationOption
+﻿using System;
+using System.Collections.Generic;
+
+namespace OnlineStore.Core.Entities;
+
+public partial class CustomizationOption
 {
-  public int ID { get; set; }
-  public required string Label { get; set; }
-  public required int TypeID { get; set; }
-  public CustomizationOptionType? customizationOptionType { get; set; }
-  public int ProductID { get; set; }
-  public decimal AdditionalCost { get; set; }
+    public int Id { get; set; }
 
-  public CustomizationOption(string label, int typeID, int productID, decimal additionalCost)
-  {
-    Label = label;
-    TypeID = typeID;
-    ProductID = productID;
-    AdditionalCost = additionalCost;
-  }
+    public string Label { get; set; } = null!;
 
-  public CustomizationOption() { }
+    public int TypeId { get; set; }
+
+    public int ProductId { get; set; }
+
+    public decimal AdditionalCost { get; set; }
+
+    public virtual ICollection<CustomizationChoice> CustomizationChoices { get; set; } = new List<CustomizationChoice>();
+
+    public virtual CustomizationOptionType Type { get; set; } = null!;
+
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 }

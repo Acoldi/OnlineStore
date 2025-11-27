@@ -31,7 +31,7 @@ public class CustomizationOptionTypesRepo : ICustomizationOptionTypesRepo
     if (cancellationToken?.IsCancellationRequested == true)
       throw new OperationCanceledException(cancellationToken.Value);
 
-    return await _connection.QuerySingleAsync<CustomizationOptionType>("SP_GetCustomizationOptionTypeByID", commandType: CommandType.StoredProcedure, param: new { ID = param });
+    return await _connection.QuerySingleOrDefaultAsync<CustomizationOptionType>("SP_GetCustomizationOptionTypeByID", commandType: CommandType.StoredProcedure, param: new { ID = param });
   }
 
   public async Task<int> CreateAsync(CustomizationOptionType param, CancellationToken? cancellationToken = null)

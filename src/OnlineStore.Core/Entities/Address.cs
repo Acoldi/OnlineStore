@@ -1,38 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using OnlineStore.Core.InterfacesAndServices.IRepositories;
+﻿namespace OnlineStore.Core.Entities;
 
-namespace OnlineStore.Core.Entities;
-public class Address
+public partial class Address
 {
-  public int ID { get; set; }
-  [Required]
-  public Guid UserID { get; set; }
-  [Required]
-  public int CountryID { get; set; }
-  public string? CountryName;
-  [Required]
-  public int CityID { get; set; }
-  public string? CityName;
+  public int Id { get; set; }
 
-  [Required]
-  public int StateID { get; set; }
-  public string? StateName;
+  public Guid UserId { get; set; }
 
-  public string? Area { get; set; }
+  public int CountryId { get; set; }
 
-  public Address(Guid userID, int countryID, int cityID, int stateID, string? area)
-  {
-    UserID = userID;
-    CountryID = countryID;
-    CityID = cityID;
-    StateID = stateID;
-    Area = area;
-  }
+  public int CityId { get; set; }
 
-  public Address() { }
+  public int? StateId { get; set; }
+
+  public string Street { get; set; } = null!;
+
+  public string? Zip { get; set; }
+
+  public virtual City City { get; set; } = null!;
+
+  public virtual Country Country { get; set; } = null!;
+
+  public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
+  public virtual State? State { get; set; }
+
+  public virtual User User { get; set; } = null!;
+
+  public virtual ICollection<User> Users { get; set; } = new List<User>();
 }

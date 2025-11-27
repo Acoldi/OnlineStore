@@ -1,42 +1,48 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using OnlineStore.Core.Entities;
-using OnlineStore.Core.Interfaces.DataAccess;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
+using OnlineStore.Infrastructure.Data.Models;
 using Serilog;
 
 namespace OnlineStore.Infrastructure.Data.RepositoriesImplementations;
 public class OrderItemRepo : IOrderItemRepo
 {
+  EStoreSystemContext _context;
   IConnectionFactory _connectionFactory;
-  IProductRepo _productRepo;
-  public OrderItemRepo(IConnectionFactory connectionFactory, IProductRepo productrepo)
+  public OrderItemRepo(EStoreSystemContext context, IConnectionFactory connectionFactory)
   {
     _connectionFactory = connectionFactory;
-    _productRepo = productrepo;
+    _context = context;
   }
 
- 
   public async Task<int> CreateAsync(OrderItem param, CancellationToken? ct = null)
   {
     if (ct?.IsCancellationRequested == true)
       throw new InvalidOperationException(ct.Value.ToString());
 
-    using (SqlConnection sqlConnection = await _connectionFactory.CreateSqlConnection())
-    {
-      // - [X] This procedure should add the price automatically
-      return await sqlConnection.QuerySingleAsync("SP_AddOrderItemToCart", param: param, commandType: System.Data.CommandType.StoredProcedure);
-    }
+    _context.OrderItems.Add(param);
+    await _context.SaveChangesAsync();
+    
+    return param.Id;
   }
- 
-  public async Task<OrderItem> CreateAndReturnEntityAsync(OrderItem param, CancellationToken? ct = null)
+
+  public async Task<OrderItem?> CreateAndReturnEntityAsync(OrderItem param, CancellationToken? ct = null)
   {
     if (ct?.IsCancellationRequested == true)
       throw new InvalidOperationException(ct.Value.ToString());
 
     using (SqlConnection sqlConnection = await _connectionFactory.CreateSqlConnection())
     {
-      return await sqlConnection.QuerySingleAsync("SP_AddOrderItemToCartAndReturnIt", param: param, commandType: System.Data.CommandType.StoredProcedure);
+      return await sqlConnection.QuerySingleOrDefaultAsync<OrderItem>("SP_AddOrderItemToCartAndReturnIt", param:
+          new
+          {
+            param.ProductId,
+            param.ShoppingCartId,
+            param.Quantity,
+          }, commandType: System.Data.CommandType.StoredProcedure);
     }
   }
 
@@ -53,11 +59,11 @@ public class OrderItemRepo : IOrderItemRepo
           if (ct?.IsCancellationRequested == true)
             throw new InvalidOperationException(ct.Value.ToString());
 
-          NewOrderItemID = await sqlConnection.QuerySingleAsync<int>("SP_AddOrderItemToCart", param:
+          NewOrderItemID = await sqlConnection.QuerySingleOrDefaultAsync<int>("SP_AddOrderItemToCart", param:
             new
             {
-              item.ProductID,
-              item.ShoppingCartID,
+              item.ProductId,
+              item.ShoppingCartId,
               item.Quantity
             }, commandType: System.Data.CommandType.StoredProcedure);
         }
@@ -72,19 +78,23 @@ public class OrderItemRepo : IOrderItemRepo
 
   }
 
-  public Task<bool> DeleteAsync(int param, CancellationToken? cancellationToken = null)
+  public async Task<bool> DeleteAsync(int param, CancellationToken? cancellationToken = null)
   {
-    throw new NotImplementedException();
+    cancellationToken?.ThrowIfCancellationRequested();
+    return await _context.OrderItems.Where(oi => oi.Id == param).ExecuteDeleteAsync() == 1;
   }
 
-  public Task<List<OrderItem>?> GetAsync(CancellationToken? ct = null)
+  public async Task<List<OrderItem>?> GetAsync(CancellationToken? ct = null)
   {
-    throw new NotImplementedException();
+    return await _context.OrderItems.ToListAsync();
   }
-
-  public Task<bool> UpdateAsync(OrderItem param, CancellationToken? cancellationToken = null)
+  public async Task<bool> UpdateAsync(OrderItem param, CancellationToken? cancellationToken = null)
   {
-    throw new NotImplementedException();
+    OrderItem? orderItem = _context.OrderItems.Where(oi => oi.Id == param.Id).FirstOrDefault();
+    if (orderItem == null) { return false; }
+
+    orderItem = param;
+    return await _context.SaveChangesAsync() > 0;
   }
 
   public async Task<OrderItem?> GetByIDAsync(int ID, CancellationToken? ct)
@@ -100,11 +110,16 @@ public class OrderItemRepo : IOrderItemRepo
     {
       OrderItem? orderItem = sqlConnection.QueryAsync<OrderItem, Product, OrderItem>(sql, (o, p) =>
       {
-        o.product = p;
+        //o.product = p;
         return o;
       }, splitOn: "ID").Result.FirstOrDefault();
 
       return orderItem;
     }
+  }
+
+  public List<OrderItem> GetAsync(int OrderID)
+  {
+    return _context.OrderItems.Where(i => i.OrderId == OrderID).Include(order => order.Product).ToList();
   }
 }

@@ -1,16 +1,21 @@
 ﻿using System.Data;
 using Dapper;
+using OnlineStore.Core.DTOs;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
+using OnlineStore.Core.Mappers;
+using OnlineStore.Infrastructure.Data.Models;
 
 namespace OnlineStore.Infrastructure.Data.RepositoriesImplementations;
 public class ReviewRepo : IReviewRepo
 {
   private readonly IConnectionFactory _connectionFactory;
+  private readonly EStoreSystemContext _eStoreSystemContext;
 
-  public ReviewRepo(IConnectionFactory connectionFactory)
+  public ReviewRepo(IConnectionFactory connectionFactory, EStoreSystemContext eStoreSystemContext)
   {
     _connectionFactory = connectionFactory;
+    _eStoreSystemContext = eStoreSystemContext;
   }
 
   public async Task<List<Review>?> GetAsync(CancellationToken? cancellationToken = null)
@@ -46,9 +51,17 @@ public class ReviewRepo : IReviewRepo
 
     using (IDbConnection connection = await _connectionFactory.CreateSqlConnection())
     {
-      int newId = await connection.QuerySingleAsync<int>(
-          "SP_AddReview", // Assuming SP_AddReview inserts a new review
-          param: param, // Dapper will map properties directly to SP parameters
+      int newId = await connection.QuerySingleOrDefaultAsync<int>(
+          "SP_AddReview",
+          param: new
+          {
+            param.ProductId,
+            param.UserId,
+            param.Rating,
+            param.Comment,
+            param.CreatedAt,
+            param.IsApproved,
+          },
           commandType: CommandType.StoredProcedure
       );
       return newId;
@@ -62,8 +75,17 @@ public class ReviewRepo : IReviewRepo
     using (IDbConnection connection = await _connectionFactory.CreateSqlConnection())
     {
       int rowsAffected = await connection.ExecuteAsync(
-          "SP_UpdateReview", // Assuming SP_UpdateReview updates an existing review
-          param: param, // Dapper will map properties directly to SP parameters
+          "SP_UpdateReview",
+          param: new
+          {
+            param.Id,
+            param.ProductId,
+            param.UserId,
+            param.Rating,
+            param.Comment,
+            param.CreatedAt,
+            param.IsApproved,
+          },
           commandType: CommandType.StoredProcedure
       );
       return rowsAffected == 1;
@@ -84,4 +106,16 @@ public class ReviewRepo : IReviewRepo
       return rowsAffected == 1;
     }
   }
+
+  public Task<List<Review>> GetAllAcceptedReviews()
+  {
+    return Task.FromResult(_eStoreSystemContext.Reviews.Where(r => r.IsApproved == true).ToList());
+  }
+
+  public Task<List<Review>> GetAllAcceptedReviews(int productID)
+  {
+    return Task.FromResult(_eStoreSystemContext.Reviews.Where(r => r.IsApproved == true && r.ProductId == productID).ToList());
+  }
+
+
 }

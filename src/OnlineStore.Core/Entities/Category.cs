@@ -1,24 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OnlineStore.Core.Entities;
-public class Category
+
+public partial class Category
 {
-  public int ID { get; set; }
-  public required string Name { get; set; }
-	public int? ParentCategoryID { get; set; }
-  public required string Slug { get; set; }
+    public int Id { get; set; }
 
-  public Category()
-  {  }
+    public string Name { get; set; } = null!;
 
-  public Category(string name, int? parentCategoryID, string slug)
-  {
-    Name = name;
-    ParentCategoryID = parentCategoryID;
-    Slug = slug;
-  }
+    public int? ParentCategoryId { get; set; }
+
+    public string Slug { get; set; } = null!;
+
+    public virtual ICollection<Category> InverseParentCategory { get; set; } = new List<Category>();
+
+    public virtual Category? ParentCategory { get; set; }
+
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 }

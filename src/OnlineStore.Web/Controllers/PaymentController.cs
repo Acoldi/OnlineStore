@@ -1,117 +1,79 @@
 ﻿using System.Text.Json;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlineStore.Core.Entities;
-using OnlineStore.Core.InterfacesAndServices.IRepositories;
-using OnlineStore.Core.InterfacesAndServices.Payment;
+using OnlineStore.Core.Enums;
+using OnlineStore.Core.InterfacesAndServices.PaymentServices;
+using OnlineStore.Infrastructure.Options;
 using OnlineStore.Web.DTOs;
+using OnlineStore.Web.Mappers;
 
 namespace OnlineStore.Web.Controllers;
 [Route("api/Payment")]
 [ApiController]
 public class PaymentController : ControllerBase
 {
-  private readonly IZainCashPaymentService _ZinPaymentsService;
-  private readonly IPaytabPaymentService _PTS_PaymentService;
-  private readonly IPaymentRepo _paymentRepo;
-  public PaymentController(IPaytabPaymentService paytabPaymentService ,IPaymentRepo payment,IZainCashPaymentService paymentService)
+  private readonly ZainCashOptions _zainCashOptions;
+  public PaymentController(ZainCashOptions zainCashOptions)
   {
-    _PTS_PaymentService = paytabPaymentService;
-    _paymentRepo = payment;
-    _ZinPaymentsService = paymentService;
+    _zainCashOptions = zainCashOptions;
   }
 
-
-  //[Authorize]
-  //[HttpGet("ZainCashCallback", Name = "ZainCashCallback")]
-  //[ProducesResponseType(StatusCodes.Status200OK)]
-  //[ProducesResponseType(StatusCodes.Status400BadRequest)]
-  //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-  
-
-
-  [Authorize(Roles = "Admin")]
-  [HttpGet("ZainCashCallback", Name = "ZainCashCallback")]
+  [HttpPost("ZainCashCallback", Name = "ZainCashCallback")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
   [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-  public async Task<IActionResult> ZainCashCallback(string token)
+  public async Task<IActionResult> ZainCashCallback([FromKeyedServices("ZainCash")] IPaymentService zainCashPaymentService,
+    string token)
   {
     if (string.IsNullOrEmpty(token))
       return BadRequest("Missing token.");
 
-    Dictionary<string, string> result = await _ZinPaymentsService.GetZaincashCallBackResults(token);
-
-    if (result["status"] == "success" || result["status"] == "completed")
-      return Ok("Successfull Transaction");
-    else if (result["status"] == "failed")
-      return BadRequest(result["msg"]);
-    else if (result["status"] == "pending")
+    try
     {
-      return Ok("Transaction is still being processed...\nTransaction ID: " + result["id"]);
+
+      ZainCashCallBadkDto? zainCashCallBadkDto = JsonSerializer.Deserialize<ZainCashCallBadkDto>
+        (Jose.JWT.Decode(token, System.Text.Encoding.UTF8.GetBytes(_zainCashOptions.secret)));
+
+      if (zainCashCallBadkDto == null)
+        return BadRequest();
+
+      enPaymentStatus result = await zainCashPaymentService.ProcessPaymentCallBack(ZainCashCallBackMapper.
+        toPaymentDto(zainCashCallBadkDto, _zainCashOptions));
+
+      return Ok(result);
+
     }
-    else
-      return StatusCode(StatusCodes.Status500InternalServerError);
+    catch (Exception ex)
+    {
+      Log.Logger.Error(ex, ex.Message);
+      return BadRequest("Invalid token");
+    }
   }
 
-  [Authorize]
-  [HttpGet("PaymentReturnPage", Name = "PayBackReturnPage")]
+  [HttpPost("PayTabCallBack", Name = "PayTabCallBack")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
   [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-  public async Task<IActionResult> PayTabCallBack([FromHeader(Name = "signature")]string Signature, PayTabCallBackReturnResponse returnResultPT)
+  public async Task<IActionResult> PayTabCallBack([FromKeyedServices("PayTab")] IPaymentService paytabPaymentService,
+    [FromHeader(Name = "signature")] string Signature,
+    PayTabCallBackDto callbackData)
   {
-    // Validating the request
-    if (_PTS_PaymentService.ValidateCallBackPayloadSignature(returnResultPT, Signature))
-      return BadRequest("Unvalid token!");
-
-    Payment payment = new Payment()
+    using (StreamReader sr = new StreamReader(HttpContext.Request.Body))
     {
-      Amount = returnResultPT.Amount,
-      CreatedAt = DateTime.UtcNow,
-      Method = Core.Enums.enPaymentMethod.MasterVisa,
-      OrderID = int.Parse(returnResultPT.OrderID),
-      Status = Core.Enums.enPaymentStatus.Pending,
-      TransactionID = returnResultPT.TransferID,
-      UpdatedAt = DateTime.UtcNow,
-    };
+      HttpContext.Request.Body.Position = 0;
 
-    payment.ID = await _paymentRepo.CreateAsync(payment);
+      string bodyRow = sr.ReadToEnd();
 
-    switch (returnResultPT.paymentResult.ResponseStatus)
-    {
-      case "A":
-        payment.Status = Core.Enums.enPaymentStatus.Authorized;
-        Log.Logger.Information("Paytabs - Payment info: " + "A; " + returnResultPT.paymentResult.ResponseMessage);
-        break;
-      case "H":
-        payment.Status = Core.Enums.enPaymentStatus.Authorized;
-        Log.Logger.Information("Paytabs - Payment info: " + "H; " + returnResultPT.paymentResult.ResponseMessage);
-        break;
-      case "P":
-        payment.Status = Core.Enums.enPaymentStatus.Pending;
-        Log.Logger.Information("Paytabs - Payment info: " + "P; " + returnResultPT.paymentResult.ResponseMessage);
-        break;
-      case "V":
-        payment.Status = Core.Enums.enPaymentStatus.Voided;
-        Log.Logger.Information("Paytabs - Payment info: " + "V; " + returnResultPT.paymentResult.ResponseMessage);
-        break;
-      case "E":
-        payment.Status = Core.Enums.enPaymentStatus.Failed;
-        Log.Logger.Information("Paytabs - Payment info: " + "E; " + returnResultPT.paymentResult.ResponseMessage);
-        break;
-      case "D":
-        payment.Status = Core.Enums.enPaymentStatus.Cancelled;
-        Log.Logger.Information("Paytabs - Payment info: " + "D; " + returnResultPT.paymentResult.ResponseMessage);
-        break;
-      case "X":
-        payment.Status = Core.Enums.enPaymentStatus.Expired;
-        Log.Logger.Information("Paytabs - Payment info: " + "X; " + returnResultPT.paymentResult.ResponseMessage);
-        break;
+      if (await paytabPaymentService.ValidateCallBack(bodyRow, Signature))
+      {
+
+        Log.Logger.Information(callbackData.PaymentResult.ToString());
+
+        await paytabPaymentService.ProcessPaymentCallBack(PayTabCallBackMapper.PaytabToPaymentDto(callbackData));
+
+        return Ok();
+      }
+      else
+        return Unauthorized("Failed to validate request.");
     }
-
-    if (await _paymentRepo.UpdateAsync(payment))
-      return Ok();
-    else return BadRequest();
   }
 }

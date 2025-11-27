@@ -1,31 +1,36 @@
-﻿using System.ComponentModel;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
-using OnlineStore.Core.Enums;
+﻿using System;
+using System.Collections.Generic;
 
 namespace OnlineStore.Core.Entities;
-public class Order
+
+/// <summary>
+/// Pending=1,Shipping,Delivered,Cancelled
+/// </summary>
+public partial class Order
 {
-  public int ID { get; set; }
-  public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-  public int ShippingAddressID { get; set; }
-  public int CustomerID { get; set; }
-  public decimal? TotalAmount { get; set; }
-  public enOrderStatuses OrderStatus { get; set; }
+    public int Id { get; set; }
 
-  public List<string>? RelatedCategories { get; set; }
+    public DateTime CreatedAt { get; set; }
 
-  public Order(int shippingAddressID, int customerID)
-  {
-    this.CreatedAt = DateTime.UtcNow;
-    this.ShippingAddressID = shippingAddressID;
-    this.CustomerID = customerID;
-    this.OrderStatus = enOrderStatuses.Pending;
-    TotalAmount = null;
-  }
+    public int ShippingAddressId { get; set; }
 
-  public Order()
-  {  }
+    public int CustomerId { get; set; }
 
+    public decimal TotalAmount { get; set; }
 
+    /// <summary>
+    ///   Pending = 1,
+    ///   Shipping,
+    ///   Delivered,
+    ///   Cancelled
+    /// </summary>
+    public short OrderStatus { get; set; }
+
+    public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+    public virtual Address ShippingAddress { get; set; } = null!;
+
+    public virtual Customer ShippingAddressNavigation { get; set; } = null!;
 }

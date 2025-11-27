@@ -1,19 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OnlineStore.Core.Entities;
-public class Customer
-{
-  public int ID { set; get; }
-  public DateTime TurnedInAT { get; set; }
-  public Guid UserID { get; set; }
 
-  public Customer(Guid userID)
-  {
-    this.UserID = UserID;
-    TurnedInAT = DateTime.Now;
-  }
+public partial class Customer
+{
+    public int Id { get; set; }
+
+    public DateTime? TurnedInAt { get; set; }
+
+    public bool IsActive { get; set; }
+
+    public Guid UserId { get; set; }
+
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
+    public virtual User User { get; set; } = null!;
 }

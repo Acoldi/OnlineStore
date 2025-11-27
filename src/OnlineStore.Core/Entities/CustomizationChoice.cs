@@ -1,17 +1,17 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Collections.Generic;
 
 namespace OnlineStore.Core.Entities;
-public class CustomizationChoice
+
+public partial class CustomizationChoice
 {
-  public int ID { get; set; }
-  public required int OptionID { get; set; }
-  public required string Value { get; set; }
+    public int Id { get; set; }
 
-  public CustomizationChoice(int optionId, string value)
-  {
-    OptionID = optionId;
-    Value = value;
-  }
+    public int OptionId { get; set; }
 
-  public CustomizationChoice() { }
+    public string Value { get; set; } = null!;
+
+    public virtual CustomizationOption Option { get; set; } = null!;
+
+    public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 }

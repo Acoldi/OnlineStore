@@ -1,19 +1,25 @@
 ﻿using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using OnlineStore.Core.Interfaces.JWT;
 using OnlineStore.Core.InterfacesAndServices;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
-using OnlineStore.Core.InterfacesAndServices.Payment;
+using OnlineStore.Core.InterfacesAndServices.JWT;
+using OnlineStore.Core.InterfacesAndServices.OrderItems;
+using OnlineStore.Core.InterfacesAndServices.PaymentServices;
+using OnlineStore.Core.InterfacesAndServices.Products;
+using OnlineStore.Core.InterfacesAndServices.Reviews;
+using OnlineStore.Core.InterfacesAndServices.UserServices;
 using OnlineStore.Infrastructure.Data;
+using OnlineStore.Infrastructure.Data.Models;
 using OnlineStore.Infrastructure.Data.RepositoriesImplementation;
 using OnlineStore.Infrastructure.Data.RepositoriesImplementations;
 using OnlineStore.Infrastructure.Options;
 using OnlineStore.Infrastructure.PaymentServices;
 using OnlineStore.Web.JWT;
 using OnlineStore.Web.RepositoriesImplementations;
-using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,12 +27,9 @@ var logger = Log.Logger = new LoggerConfiguration()
   .Enrich.FromLogContext()
   .WriteTo.File("Logs/log.txt")
   .WriteTo.Console()
-  //.WriteTo.File("Login/log.txt")
   .CreateLogger();
 
 logger.Information("Starting web host");
-
-builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o =>
@@ -89,30 +92,45 @@ builder.Services.AddAuthorization();
 
 // Access the configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddScoped<OnlineStore.Infrastructure.Data.IConnectionFactory>
+builder.Services.AddScoped<IConnectionFactory>
   (_ => new ConnectionStringFactory(connectionString));
 
 //builder.Services.AddScoped<IDataAccess, DataAccess>();
 builder.Services.AddScoped<IProductRepo, ProductRepo>();
+builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IJWTService, JWTService>();
 builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
 builder.Services.AddScoped<IUserRepo, UserRepo>();
 builder.Services.AddScoped<IOrderRepo, OrderRepo>();
 builder.Services.AddScoped<IOrderItemRepo, OrderItemRepo>();
 builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IListProductsWithQuantitiesService, ListProductsWithQuantitiesService>();
 builder.Services.AddScoped<ICartRepo, CartRepo>();
-builder.Services.AddScoped<ICustomizationRepo, CustomizationRepo>();
-builder.Services.AddScoped<IPaytabPaymentService, PayTabsPaymentService>();
-builder.Services.AddScoped<IZainCashPaymentService, ZainCashPaymentService>();
+builder.Services.AddKeyedScoped<IPaymentService, PayTabsPaymentService>("PayTab");
+builder.Services.AddKeyedScoped<IPaymentService, ZainCashPaymentService>("ZainCash");
 builder.Services.AddScoped<IAddressRepo, AddressRepo>();
 builder.Services.AddScoped<ICityRepo, CityRepo>();
 builder.Services.AddScoped<ICustomerRepo, CustomerRepo>();
 builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
-builder.Services.AddScoped<IPaytabPaymentService, PayTabsPaymentService>();
-builder.Services.AddScoped<IZainCashPaymentService, ZainCashPaymentService>();
+builder.Services.AddScoped<IPaymentService, PayTabsPaymentService>();
+
+builder.Services.AddDbContext<EStoreSystemContext>(o =>
+          o.UseSqlServer(builder.Configuration["ConnectionStrings:DefaultConnection"]));
+builder.Services.AddScoped<IReviewRepo, ReviewRepo>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+
+builder.Services.AddControllers().AddJsonOptions(o => 
+  o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
+);
+
+
+builder.Services.AddHttpClient<ZainCashPaymentService>();
 
 // Using Options pattern
 builder.Services.Configure<PayTabsOptions>(builder.Configuration.GetSection(PayTabsOptions.PayTabs));
+builder.Services.Configure<ZainCashOptions>(builder.Configuration.GetSection(ZainCashOptions.ZainCash));
 
 var app = builder.Build();
 
@@ -129,8 +147,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
 app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

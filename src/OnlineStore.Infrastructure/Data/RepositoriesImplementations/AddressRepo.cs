@@ -30,7 +30,7 @@ public class AddressRepo : IAddressRepo
     if (cancellationToken?.IsCancellationRequested == true)
       throw new OperationCanceledException(cancellationToken.Value);
 
-    return await _connection.QuerySingleAsync<Address>("SP_GetAddressByID", commandType: CommandType.StoredProcedure, param: new { ID = param});
+    return await _connection.QuerySingleOrDefaultAsync<Address>("SP_GetAddressByID", commandType: CommandType.StoredProcedure, param: new { ID = param});
   }
 
   public async Task<int> CreateAsync(Address param, CancellationToken ? cancellationToken = null)

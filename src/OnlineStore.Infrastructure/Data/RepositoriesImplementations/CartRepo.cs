@@ -1,15 +1,19 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
+using OnlineStore.Infrastructure.Data.Models;
 
 namespace OnlineStore.Infrastructure.Data.RepositoriesImplementations;
 public class CartRepo : ICartRepo
 {
   SqlConnection _connection;
-  public CartRepo(IConnectionFactory connectionFactory)
+  private readonly EStoreSystemContext _context;
+  public CartRepo(EStoreSystemContext eStoreSystemContext, IConnectionFactory connectionFactory)
   {
     _connection = connectionFactory.CreateSqlConnection().Result;
+    _context = eStoreSystemContext;
   }
 
   public Task<int> CreateAsync(ShoppingCart UserID, CancellationToken? cancellationToken = null)
@@ -17,13 +21,19 @@ public class CartRepo : ICartRepo
     throw new NotImplementedException();
   }
 
-  public async Task<int?> CreateAsync(Guid UserID, CancellationToken? cancellationToken)
+  /// <summary>
+  /// 
+  /// </summary>
+  /// <param name="UserID"></param>
+  /// <param name="cancellationToken"></param>
+  /// <returns>This method returns the cart id if it's already there, else it creates a new one and returns its id.</returns>
+  /// <exception cref="OperationCanceledException"></exception>
+  public async Task<int> CreateAsync(Guid UserID, CancellationToken? cancellationToken)
   {
     if (cancellationToken?.IsCancellationRequested == true)
       throw new OperationCanceledException();
 
-    // The procedure the cart id if it's already there, else it creates a new one and returns its id.
-    return await _connection.QuerySingleOrDefaultAsync<int?>("SP_CreateShoppingCart", commandType: System.Data.CommandType.StoredProcedure,
+    return await _connection.QuerySingleOrDefaultAsync<int>("SP_CreateShoppingCart", commandType: System.Data.CommandType.StoredProcedure,
       param: new { UserID });
   }
 
@@ -50,6 +60,7 @@ public class CartRepo : ICartRepo
 
   public async Task<bool> RemoveCartItemsAsync(int ShoppingCartID)
   {
+    // This should be related to order items repo
     return await _connection.ExecuteAsync("SP_DeleteItemsFromCart", commandType: System.Data.CommandType.StoredProcedure
       , param: new { ShoppingCartID }) > 0;
   }
@@ -57,5 +68,13 @@ public class CartRepo : ICartRepo
   public Task<bool> UpdateAsync(ShoppingCart param, CancellationToken? cancellationToken = null)
   {
     throw new NotImplementedException();
+  }
+
+  public async Task<bool> RemoveCartItemsAsync(List<int> ItemIDs, int ShoppingCartID)
+  {
+    // I can either use dapper (TVP - table valued parameters) or EF, I will try EF
+
+    return await _context.OrderItems.Where(o => ItemIDs.Contains(o.Id) && o.ShoppingCartId == ShoppingCartID).ExecuteDeleteAsync() 
+      > 0;
   }
 }

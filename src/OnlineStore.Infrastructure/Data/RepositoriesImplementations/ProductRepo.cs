@@ -1,12 +1,8 @@
 ﻿using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
-using Microsoft.IdentityModel.Tokens;
 using OnlineStore.Core.Entities;
-using OnlineStore.Core.InterfacesAndServices;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
-using OnlineStore.Infrastructure.Data.Models;
-using OnlineStore.Web.DTOs;
 
 namespace OnlineStore.Infrastructure.Data.RepositoriesImplementations;
 public class ProductRepo : IProductRepo
@@ -19,19 +15,11 @@ public class ProductRepo : IProductRepo
 
   public async Task<Product?> GetByNameAsync(string Name, CancellationToken? cancellationToken = null)
   {
-    try
-    {
-      return await _connection.QuerySingleAsync<Product>("SP_GetProductByName", commandType: CommandType.StoredProcedure,
-        param: new
-        {
-          ProductName = Name
-        });
-
-    }
-    catch
-    {
-      return null;
-    }
+    return await _connection.QuerySingleOrDefaultAsync<Product>("SP_GetProductByName", commandType: CommandType.StoredProcedure,
+      param: new
+      {
+        ProductName = Name
+      });
   }
 
   public async Task<List<Product>?> GetByCategory(string category, CancellationToken? cancellationToken = null)
@@ -60,8 +48,8 @@ public class ProductRepo : IProductRepo
 
   public async Task<List<Product>?> GetByCategoryID(int ID, CancellationToken? ct = null)
   {
-    return (await _connection.QueryAsync<Product>("SP_GetProductByCategoryID",
-    commandType: CommandType.StoredProcedure, param: new { ID })).ToList();
+    return [.. await _connection.QueryAsync<Product>("SP_GetProductByCategoryID",
+    commandType: CommandType.StoredProcedure, param: new { ID })];
   }
 
   public async Task<List<Product>?> GetAsync(CancellationToken? cancellationToken = null)
@@ -70,7 +58,6 @@ public class ProductRepo : IProductRepo
       throw new OperationCanceledException();
 
     return (await _connection.QueryAsync<Product>("SP_GetAllProducts", commandType: CommandType.StoredProcedure)).ToList();
-
   }
 
   public async Task<Product?> GetByIDAsync(int ID, CancellationToken? cancellationToken = null)
@@ -78,16 +65,25 @@ public class ProductRepo : IProductRepo
     if (cancellationToken?.IsCancellationRequested == true)
       throw new OperationCanceledException();
 
-    return await _connection.QuerySingleAsync<Product>("SP_GetProductByID", commandType: CommandType.StoredProcedure, param: new { ID });
+    return await _connection.QuerySingleOrDefaultAsync<Product>("SP_GetProductByID", commandType: CommandType.StoredProcedure, param: new { ID });
   }
 
-  public async Task<int> CreateAsync(Product param, CancellationToken? cancellationToken = null)
+  public async Task<int> CreateAsync(Product param, CancellationToken? cancellationToken = default)
   {
     cancellationToken?.ThrowIfCancellationRequested();
 
-    return await _connection.QuerySingleAsync<int>("SP_AddProduct", commandType: CommandType.StoredProcedure,
-    param: param);
-
+    return await _connection.QuerySingleOrDefaultAsync<int>("SP_AddProduct", commandType: CommandType.StoredProcedure,
+    param: new
+    {
+      param.Name,
+      param.Description,
+      param.Price,
+      param.Sku,
+      param.CategoryId,
+      param.CreatedAt,
+      param.IsActive,
+      param.Slug
+    });
   }
 
   public async Task<bool> UpdateAsync(Product param, CancellationToken? cancellationToken = null)
@@ -95,7 +91,15 @@ public class ProductRepo : IProductRepo
     if (cancellationToken?.IsCancellationRequested == true)
       throw new OperationCanceledException();
 
-    return await _connection.ExecuteAsync("SP_UpdateProduct", commandType: CommandType.StoredProcedure, param: param) == 1;
+    return await _connection.ExecuteAsync("SP_UpdateProduct", commandType: CommandType.StoredProcedure, param: new
+    {
+      param.Id,
+      param.Name,
+      param.Description,
+      param.Price,
+      param.Sku,
+      param.CategoryId,
+    }) == 1;
   }
 
   public async Task<bool> DeleteAsync(int ID, CancellationToken? cancellationToken = null)

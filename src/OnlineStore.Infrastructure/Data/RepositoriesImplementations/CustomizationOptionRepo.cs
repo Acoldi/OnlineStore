@@ -39,7 +39,7 @@ public class CustomizationOptionRepo : ICustomizationOptionRepo
       return connection.QueryAsync<CustomizationOption, CustomizationOptionType, CustomizationOption>(
           "SP_GetCustomizationOptionByID", (co, ct) => 
           { 
-            co.customizationOptionType = ct;
+            //co.customization = ct;
             return co;
           },
           param: new { ID },
@@ -55,7 +55,7 @@ public class CustomizationOptionRepo : ICustomizationOptionRepo
 
     using (IDbConnection connection = await _connectionFactory.CreateSqlConnection())
     {
-      int newId = await connection.QuerySingleAsync<int>(
+      int newId = await connection.QuerySingleOrDefaultAsync<int>(
           "SP_AddCustomizationOption",
           param: param,
           commandType: CommandType.StoredProcedure
@@ -94,12 +94,13 @@ public class CustomizationOptionRepo : ICustomizationOptionRepo
     }
   }
 
-  public async Task<List<CustomizationOption>?> GetProductCustomizationOptions()
+  public async Task<List<CustomizationOption>?> GetProductCustomizationOptions(int productID)
   {
     using (SqlConnection conn = await _connectionFactory.CreateSqlConnection())
     {
       return [.. (await conn.QueryAsync<CustomizationOption>(
                 "SP_GetCustomizationOptionsByProductID",
+                param: productID,
                 commandType: CommandType.StoredProcedure
             ))];
     }

@@ -26,8 +26,8 @@ public class CategoryRepo : ICategoryRepo
     if (cancellationToken?.IsCancellationRequested == true)
       throw new OperationCanceledException(cancellationToken.Value);
 
-    return await _connection.QuerySingleAsync<int>("SP_AddCategory", commandType:
-      CommandType.StoredProcedure, param: new { param.Name, param.ParentCategoryID, param.Slug });
+    return await _connection.QuerySingleOrDefaultAsync<int>("SP_AddCategory", commandType:
+      CommandType.StoredProcedure, param: new { param.Name, param.ParentCategoryId, param.Slug });
   }
 
   public async Task<bool> UpdateAsync(Category param, CancellationToken? cancellationToken = null)
@@ -76,7 +76,7 @@ public class CategoryRepo : ICategoryRepo
     if (ct?.IsCancellationRequested == true)
       throw new OperationCanceledException(ct.Value);
 
-    return await _connection.QuerySingleAsync<Category>("[dbo].[SP_GetCategoryByID]", param: param, commandType: CommandType.StoredProcedure);
+    return await _connection.QuerySingleOrDefaultAsync<Category>("[dbo].[SP_GetCategoryByID]", param: param, commandType: CommandType.StoredProcedure);
   }
 
   public async Task<List<Category>?> GetCategoriesUnderParentNameAsync(string Name, CancellationToken? ct)

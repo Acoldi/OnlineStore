@@ -1,8 +1,14 @@
 ﻿using OnlineStore.Core.DTOs;
+using OnlineStore.Core.DTOs.Items;
+using OnlineStore.Core.DTOs.PaytabsDTOs;
 using OnlineStore.Core.Entities;
+using OnlineStore.Core.Enums;
+using OnlineStore.Core.Exceptions;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
-using OnlineStore.Core.InterfacesAndServices.Payment;
-using OnlineStore.Web.DTOs;
+using OnlineStore.Core.InterfacesAndServices.PaymentServices;
+using OnlineStore.Core.Mappers;
+using OnlineStore.Core.Mappers.ItemMappers;
+using OnlineStore.Core.Values;
 using Serilog;
 
 namespace OnlineStore.Core.InterfacesAndServices;
@@ -10,33 +16,33 @@ public class CartService : ICartService
 {
   private readonly IOrderRepo _orderRepo;
   private readonly IOrderItemRepo _orderItemRepo;
-  private readonly IProductRepo _productRepo;
-  private readonly IZainCashPaymentService _paymentService;
-  ICartRepo _cartRepo;
-  ICustomizationRepo _customizationRepo;
-  
+  private readonly ICartRepo _cartRepo;
+  private readonly ICustomerRepo _customerRepo;
+  private readonly IAddressRepo _addressRepo;
+  private readonly IPaymentService _paytabPaymentService;
+  private readonly IZainCashPaymentService _zainCashPaymentService;
+  private readonly IUserRepo _userRepo;
+
   public CartService(
       ICartRepo cartRepo,
-      IOrderRepo orderService,
+      IOrderRepo orderRepo,
       IOrderItemRepo orderItem,
-      IProductRepo productService,
-      ICustomizationRepo customizationRepo,
-      IZainCashPaymentService paymentService)
+      ICustomerRepo customerRepo,
+      IAddressRepo addressRepo,
+      IPaymentService paytabPaymentService,
+      IUserRepo userRepo,
+      IZainCashPaymentService zainCashPaymentService)
   {
-    _orderRepo = orderService;
+    _orderRepo = orderRepo;
     _orderItemRepo = orderItem;
-    _productRepo = productService;
     _cartRepo = cartRepo;
-    _customizationRepo = customizationRepo;
-    _paymentService = paymentService;
+    _customerRepo = customerRepo;
+    _addressRepo = addressRepo;
+    _paytabPaymentService = paytabPaymentService;
+    _userRepo = userRepo;
+    _zainCashPaymentService = zainCashPaymentService;
   }
-  /// <summary>
-  /// Removes all items in the user cart and add new orderItems
-  /// </summary>
-  /// <param name="UserID"></param>
-  /// <param name="cartItemsDto"></param>
-  /// <param name="ct"></param>
-  /// <returns></returns>
+
   // This method violates the SR (single responsibility) principle
   public async Task<bool> SetCartItemsAsync(
     Guid UserID,
@@ -45,38 +51,25 @@ public class CartService : ICartService
   {
     try
     {
-      // Getting the user's cart ID.
-      int? ShoppingCartID = await _cartRepo.CreateAsync(UserID, ct);
-
-      if (ShoppingCartID == null)
-        return false;
-
-      // Remove customizations
-      foreach (CartItemDto item in cartItemsDto)
-      {
-        await _customizationRepo.DeleteByItemIDAsync(item.orderItem.Id);
-      }
+      // Remove customizations: it will be removed by the db per ON DELETE CASCADE constraint
+      //foreach (CartItemDto item in cartItemsDto)
+      //{
+      //  await _customizationRepo.DeleteByItemIDAsync(item.orderItem.Id);
+      //}
 
       // Remove items
-      await RemoveAllItemsAsync(ShoppingCartID.Value, null);
+      await RemoveAllItemsAsync(UserID, null);
 
       // Set new order items
-      Customization customization;
+      OrderItem orderItem = new OrderItem();
       foreach (CartItemDto item in cartItemsDto)
       {
-        item.orderItem.Id = await _orderItemRepo.CreateAsync(item.orderItem, ct);
+        orderItem = CartItemMapper.toEntity(item);
 
-        // Add customizations for OrderItem
-        foreach (int choiceid in item.ChoicesID)
-        {
-          customization = new Customization()
-          {
-            CustomizationChoiceID = choiceid,
-            OrderItemID = item.orderItem.Id
-          };
-
-          await _customizationRepo.CreateAsync(customization, ct);
-        }
+        // Here, using EF instea of dapper is a lot more convenient
+        // Update this method so it takes the order choices with the entity that it creates
+        orderItem.Id = await _orderItemRepo.CreateAsync(orderItem, ct);
+      
       }
       return true;
     }
@@ -87,30 +80,86 @@ public class CartService : ICartService
     }
   }
 
-
-  public async Task<int> PlaceOrder(Order order, CancellationToken ct)
+  public async Task<bool> AddCartItemsAsync(Guid UserID, List<CartItemDto> cartItemsDto, CancellationToken? ct)
   {
     try
     {
-      order.ID = await _orderRepo.CreateAsync(order, ct);
+      //Customization customization;
+
+      int orderitem;
+      foreach (CartItemDto item in cartItemsDto)
+      {
+        orderitem = await _orderItemRepo.CreateAsync(CartItemMapper.toEntity(item),ct);
+
+      }
+      return true;
     }
     catch (Exception ex)
     {
-      Log.Error(ex, "An error occurred while placing an order.");
+      Log.Logger.Error(ex.Message);
+      return false;
+    }
+  }
+
+  public async Task<string?> PlaceOrder(Guid UserID, OrderDto orderdto, 
+    enPaymentMethod enPaymentMethod, CancellationToken ct)
+  {
+    try
+    {
+      // A user is a customer if he placed an order!
+      int CustomerID = await _customerRepo.CreateAsync(new Customer() 
+      { IsActive = true ,UserId = UserID, TurnedInAt = DateTime.Today }, ct);
+
+      Order order = OrderMapper.toEntity(orderdto);
+      order.Id = await _orderRepo.CreateAsync(order, ct);
+
+      string paymentUrl = "";
+      switch (enPaymentMethod)
+      {
+        case enPaymentMethod.MasterVisa:
+
+          Address address = await _addressRepo.GetByIDAsync(order.ShippingAddressId)
+            ?? throw new InvalidOperationException($"Shipping address with id: {order.ShippingAddressId} not found.");
+
+          User? user = await _userRepo.GetByIDAsync(UserID, ct);
+
+          paymentUrl = await _paytabPaymentService.GenereateTransactionURL(order, CustomerDetailsMapper);
+          return paymentUrl;
+        case enPaymentMethod.ZainCash:
+          paymentUrl = await _zainCashPaymentService.GenerateZainCashPaymentURL(order);
+          return paymentUrl;
+        case enPaymentMethod.Other:
+          throw new NotImplementedException();
+        default:
+          return paymentUrl;
+
+      }
+    }
+    catch (Exception ex)
+    {
+      Log.Error(ex.Message, "Error occurred while placing order.");
       throw;
     }
 
-    return order.ID;
   }
 
-  public async Task<List<OrderItem>?> LoadCartItems(Guid UserID, CancellationToken ct)
+  public Task<List<CartItemDto>?> LoadCartItems(Guid UserID, CancellationToken ct)
   {
-    return await _cartRepo.GetCartItemsAsync(UserID);
+    //return await _cartRepo.GetCartItemsAsync(UserID);
+    throw new NotImplementedException();
   }
 
-  public async Task RemoveAllItemsAsync(int ShoppingCartID, CancellationToken? ct)
+  public async Task<bool> RemoveAllItemsAsync(Guid UserID, CancellationToken? ct)
   {
-    await _cartRepo.RemoveCartItemsAsync(ShoppingCartID);
+    int cartID = await _cartRepo.CreateAsync(UserID);
+
+    return await _cartRepo.RemoveCartItemsAsync(cartID);
+  }
+
+  public async Task<bool> RemoveItemsFromCartAsync(Guid UserID, List<int> ItemsIDs, CancellationToken? ct)
+  {
+    int cartid = await _cartRepo.CreateAsync(UserID, ct);
+    return await _cartRepo.RemoveCartItemsAsync(ItemsIDs, cartid);
   }
 
 }

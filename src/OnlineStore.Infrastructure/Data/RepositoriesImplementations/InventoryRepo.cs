@@ -23,7 +23,7 @@ public class InventoryRepo : IInventoryRepo
     if (cancellationToken?.IsCancellationRequested == true)
       throw new OperationCanceledException(cancellationToken.Value);
 
-    return await _connection.QuerySingleAsync("SP_AddInventory", commandType: System.Data.CommandType.StoredProcedure,
+    return await _connection.QuerySingleOrDefaultAsync("SP_AddInventory", commandType: System.Data.CommandType.StoredProcedure,
       param: param);
   }
 
@@ -43,7 +43,7 @@ public class InventoryRepo : IInventoryRepo
 
   public async Task<Inventory?> GetByIDAsync(int ID, CancellationToken? cancellationToken = null)
   {
-    return await _connection.QuerySingleAsync<Inventory>("SP_GetInventories", commandType: System.Data.CommandType.StoredProcedure,
+    return await _connection.QuerySingleOrDefaultAsync<Inventory>("SP_GetInventories", commandType: System.Data.CommandType.StoredProcedure,
       param: new {ID});
   }
 

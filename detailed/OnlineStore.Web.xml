@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>OnlineStore.Web</name>
+    </assembly>
+    <members>
+        <member name="M:OnlineStore.Web.Controllers.CartController.SetItems(System.Collections.Generic.List{OnlineStore.Web.DTOs.CartItemDto},System.Threading.CancellationToken)">
+            <summary>
+            Set a new list of cart items, if there are any current items, they are overriden
+            </summary>
+            <param name="OrderItem"></param>
+            <param name="ct"></param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>

@@ -1,18 +1,17 @@
-﻿namespace OnlineStore.Core.Entities;
-public class Inventory
+﻿using System;
+using System.Collections.Generic;
+
+namespace OnlineStore.Core.Entities;
+
+public partial class Inventory
 {
-  public int ID { get; set; }
-  public int ProductID { get; set; }
-  public int Quantity { get; set; }
-  public DateTime LastRestockedAt { get; set; }
+    public int Id { get; set; }
 
-  public Inventory(int id, int productId, int quantity, DateTime lastRestockedAt)
-  {
-    ID = id;
-    ProductID = productId;
-    Quantity = quantity;
-    LastRestockedAt = lastRestockedAt;
-  }
+    public int ProductId { get; set; }
 
-  public Inventory() { }
+    public int Quantity { get; set; }
+
+    public DateTime LastRestockedAt { get; set; }
+
+    public virtual Product Product { get; set; } = null!;
 }

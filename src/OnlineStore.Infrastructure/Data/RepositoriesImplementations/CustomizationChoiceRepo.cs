@@ -48,9 +48,13 @@ public class CustomizationChoiceRepo : ICustomizationChoiceRepo
 
     using (IDbConnection connection = await _connectionFactory.CreateSqlConnection())
     {
-      int newId = await connection.QuerySingleAsync<int>(
+      int newId = await connection.QuerySingleOrDefaultAsync<int>(
           "SP_AddCustomizationChoice",
-          param: param,
+          param: new
+          {
+            param.OptionId,
+            param.Value,
+          },
           commandType: CommandType.StoredProcedure
       );
       return newId;
@@ -68,7 +72,12 @@ public class CustomizationChoiceRepo : ICustomizationChoiceRepo
 
       int rowsAffected = await connection.ExecuteAsync(
           "SP_UpdateCustomizationChoice",
-          param: param,
+          param: new
+          {
+            param.Id,
+            param.OptionId,
+            param.Value,
+          },
           commandType: CommandType.StoredProcedure
       );
       return rowsAffected == 1;

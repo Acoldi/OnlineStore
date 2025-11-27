@@ -1,18 +1,15 @@
 ﻿using System.Configuration;
 using System.IdentityModel.Tokens.Jwt;
-using System.Runtime.ExceptionServices;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using OnlineStore.Core.Enums;
-using OnlineStore.Core.Interfaces.JWT;
+using OnlineStore.Core.InterfacesAndServices.JWT;
 
 namespace OnlineStore.Web.JWT;
 
 public class JWTService : IJWTService
 {
-  static private JwtSecurityTokenHandler jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
   private IConfiguration _configuration;
 
   public JWTService(IConfiguration configuration)
@@ -22,13 +19,14 @@ public class JWTService : IJWTService
 
   public string GenerateJWT(string userID, enRole Role)
   {
-    if (_configuration["JwtSettings:SecurityKey"] == null) throw new ConfigurationErrorsException("SecurityKey can't be null");
+    JwtSecurityTokenHandler _jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
 
-      SigningCredentials credentials = new SigningCredentials(new SymmetricSecurityKey(
-                                      Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecurityKey"] ?? "")),
-      SecurityAlgorithms.HmacSha256);
+    SigningCredentials credentials = new SigningCredentials(new SymmetricSecurityKey(
+                                    Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecurityKey"] ?? 
+                                    throw new ConfigurationErrorsException("jwt security key is not provided"))),
+    SecurityAlgorithms.HmacSha256);
 
-    
+
     Claim[] claims = new[]
     {
         new Claim(JwtRegisteredClaimNames.Sub, userID.ToString()),
@@ -40,10 +38,10 @@ public class JWTService : IJWTService
         issuer: _configuration["JwtSettings:issuer"],
         audience: _configuration["JwtSettings:audience"],
         claims: claims,
-        expires: DateTime.Now.AddYears(1),
+        expires: DateTime.Now.AddHours(2),
         signingCredentials: credentials
     );
 
-    return jwtSecurityTokenHandler.WriteToken(jwtSecurityToken);
+    return _jwtSecurityTokenHandler.WriteToken(jwtSecurityToken);
   }
 }

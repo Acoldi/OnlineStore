@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using OnlineStore.Core.Interfaces;
 
 namespace OnlineStore.Core.InterfacesAndServices;
-static public class UtilityService
+public class UtilityService
 {
   static public string GenerateSlug(string Token)
   {

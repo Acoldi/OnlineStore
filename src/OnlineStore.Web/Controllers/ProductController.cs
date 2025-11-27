@@ -1,47 +1,41 @@
-﻿using System.Security.Cryptography;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlineStore.Core.Entities;
-using OnlineStore.Core.InterfacesAndServices.IRepositories;
+using OnlineStore.Core.DTOs;
 using OnlineStore.Core.InterfacesAndServices.Products;
-using OnlineStore.Web.DTOs;
 
 namespace OnlineStore.Web.Controllers;
 [Route("api/Product")]
 [ApiController]
 public class ProductController : ControllerBase
 {
-  IProductService _productService;
-  IProductRepo _productRepo;
-  public ProductController(IProductRepo productRepo ,IProductService productService)
+  private readonly IProductService _productService;
+  public ProductController(IProductService productService)
   {
     _productService = productService;
-    _productRepo = productRepo;
   }
 
-  //[Authorize(Roles = "Admin")]
+  [Authorize(Roles = "Admin")]
   [HttpGet("AllProducts", Name = "GetAllProducts")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status404NotFound)]
   public async Task<IActionResult> GetAllProductsAsync()
   {
-    var result = await _productRepo.GetAsync();
+    var result = await _productService.GetAsync();
     return Ok(result);
   }
 
   [HttpPost("Create", Name = "AddProduct")]
   [ProducesResponseType(StatusCodes.Status200OK)]
-  //[Authorize(Roles = "Admin")]
-  public async Task<IActionResult> AddProductAsync(AddProductParameters NewProduct, CancellationToken? ct)
+  [Authorize(Roles = "Admin")]
+  public async Task<IActionResult> AddProductAsync([FromBody] ProductDto NewProduct)
   {
-    Product? product = await _productRepo.GetByNameAsync(NewProduct.ProductName);
-    if (product != null)
-      return BadRequest("there is already a product named: " + NewProduct.ProductName);
 
-    
-    if (await _productService.CreateNewProduct(NewProduct, ct) != 0)
+    ProductDto? product = await _productService.GetByNameAsync(NewProduct.Name);
+    if (product != null)
+      return BadRequest("there is already a product named: " + NewProduct.Name);
+
+
+    if (await _productService.CreateNewProduct(NewProduct, null) != 0)
       return Ok("Product created");
     else
       return StatusCode(StatusCodes.Status500InternalServerError);
@@ -51,20 +45,21 @@ public class ProductController : ControllerBase
   [ProducesResponseType(StatusCodes.Status200OK)]
   public async Task<IActionResult> DeleteProductAsync(int ID)
   {
-    await _productRepo.DeleteAsync(ID);
-    
+    await _productService.DeleteAsync(ID);
+
     return Ok("Product deleted");
   }
 
-  [HttpGet("Custom products", Name = "GetCustomizableProducts")]
+  [HttpGet("CustomProducts", Name = "GetCustomizableProducts")]
   [ProducesResponseType(StatusCodes.Status200OK)]
-  public async Task<IActionResult> GetCustomizableProducts(int ID)
+  public async Task<IActionResult> GetCustomizableProducts()
   {
 
-    List<Product>? result = await _productRepo.GetCustomizableProducts(null);
-    
+    List<ProductDto>? result = await _productService.GetCustomizableProducts();
+
+    if (result == null) return Empty;
+
     return Ok(result);
   }
-
 
 }
