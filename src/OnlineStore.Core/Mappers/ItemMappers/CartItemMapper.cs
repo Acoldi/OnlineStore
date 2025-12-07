@@ -30,11 +30,12 @@ public class CartItemMapper : Mapper<OrderItem, CartItemDto>
       Quantity = DTO.Quantity,
     };
 
-    foreach (var item in DTO.ChoicesID)
+    foreach (int item in DTO.ChoicesID)
     {
       orderItem.CustomizationChoices.Add(new CustomizationChoice()
       {
-        Id = item
+        Id = item,
+        
       });
     }
 

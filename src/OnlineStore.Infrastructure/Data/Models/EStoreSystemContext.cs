@@ -257,7 +257,7 @@ public partial class EStoreSystemContext : DbContext
               .HasConstraintName("FK_Inventory_products");
     });
 
-    modelBuilder.Entity<Order>(entity =>
+    modelBuilder.Entity<Order>((Action<Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Order>>)(entity =>
     {
       entity.HasKey(e => e.Id).HasName("PK__Orders__3214EC2712E12D2F");
 
@@ -277,16 +277,16 @@ public partial class EStoreSystemContext : DbContext
       entity.Property(e => e.ShippingAddressId).HasColumnName("ShippingAddressID");
       entity.Property(e => e.TotalAmount).HasColumnType("decimal(10, 0)");
 
-      entity.HasOne(d => d.ShippingAddress).WithMany(p => p.Orders)
+      entity.HasOne(e => e.ShippingAddress).WithMany(a => a.Orders)
               .HasForeignKey(d => d.ShippingAddressId)
               .OnDelete(DeleteBehavior.ClientSetNull)
               .HasConstraintName("FK_Orders_Addresses");
 
-      entity.HasOne(d => d.ShippingAddressNavigation).WithMany(p => p.Orders)
-              .HasForeignKey(d => d.ShippingAddressId)
+      entity.HasOne(d => d.Customer).WithMany(p => p.Orders)
+              .HasForeignKey(d => d.CustomerId)
               .OnDelete(DeleteBehavior.ClientSetNull)
               .HasConstraintName("FK_Orders_Customers");
-    });
+    }));
 
     modelBuilder.Entity<OrderItem>(entity =>
     {
@@ -462,6 +462,10 @@ public partial class EStoreSystemContext : DbContext
       entity.HasOne(d => d.DefaultAddress).WithMany(p => p.Users)
               .HasForeignKey(d => d.DefaultAddressId)
               .HasConstraintName("FK_Users_Addresses");
+
+      entity.HasOne(u => u.ShoppingCart).WithOne(sc => sc.User)
+      .OnDelete(DeleteBehavior.Cascade);
+    
     });
 
     modelBuilder.Entity<Video>(entity =>

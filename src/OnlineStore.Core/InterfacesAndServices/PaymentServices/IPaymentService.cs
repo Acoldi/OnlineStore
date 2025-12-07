@@ -7,8 +7,7 @@ using OnlineStore.Core.Enums;
 namespace OnlineStore.Core.InterfacesAndServices.PaymentServices;
 public interface IPaymentService
 {
-  public Task<string> GenereateTransactionURL(Order order,
-    CustomerDetailsDto? CustomerDetails);
+  public Task<string> GenereateTransactionURL(Order order);
 
   public Task<enPaymentStatus> ProcessPaymentCallBack(PaymentCallBackDto paymentCallBackReturnResponseDto);
 

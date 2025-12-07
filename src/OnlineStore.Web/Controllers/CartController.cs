@@ -33,7 +33,7 @@ public class CartController : ControllerBase
   /// <summary>
   /// Set a new list of cart items, if there are any current items, they are overriden
   /// </summary>
-  /// <param name="OrderItem"></param>
+  /// <param name="CartItems"></param>
   /// <param name="ct"></param>
   /// <returns></returns>
   [HttpPost("SetItems")]
@@ -41,21 +41,25 @@ public class CartController : ControllerBase
   [ProducesResponseType(StatusCodes.Status500InternalServerError)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
   [Authorize(Roles = "Admin")]
-  public async Task<IActionResult> SetItems(List<CartItemDto> OrderItem, CancellationToken ct)
+  public async Task<IActionResult> SetItems(List<CartItemDto> CartItems, CancellationToken ct = default)
   {
     Guid UserID = GetUserID();
 
     try
     {
-      await _cartService.SetCartItemsAsync(UserID, OrderItem, ct);
+      if (await _cartService.SetCartItemsAsync(UserID, CartItems, ct))
+        return Ok();
+      else
+      {
+        Log.Logger.Error("cartService.SetCartItemsAsync failed!!!");
+        return BadRequest();
+      }
     }
     catch (Exception ex)
     {
-      Log.Logger.Error(ex.Message);
-      return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+      Log.Logger.Error(ex, ex.Message);
+      return BadRequest();
     }
-
-    return Ok();
   }
 
   [HttpPost("AddItems")]
@@ -109,7 +113,7 @@ public class CartController : ControllerBase
   [ProducesResponseType(StatusCodes.Status500InternalServerError)]
   [Authorize(Roles = "Admin")]
 
-  public async Task<IActionResult> PlaceOrder(OrderDto createOrderParam,
+  public async Task<IActionResult> PlaceOrder(OrderDto OrderDto,
     enPaymentMethod enPaymentMethod, CancellationToken ct)
   {
 
@@ -117,7 +121,7 @@ public class CartController : ControllerBase
     {
       Guid userID = GetUserID();
 
-      string? paymentUrl = await _cartService.PlaceOrder(userID, createOrderParam, enPaymentMethod, ct);
+      string? paymentUrl = await _cartService.PlaceOrder(userID, OrderDto, enPaymentMethod, ct);
 
       if (paymentUrl == null)
       {

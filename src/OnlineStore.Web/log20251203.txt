@@ -1,0 +1,28 @@
+2025-12-03 19:46:30.700 +03:00 [DBG] Registered model binder providers, in the following order: ["Microsoft.AspNetCore.Mvc.ModelBinding.Binders.BinderTypeModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ServicesModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.BodyModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.HeaderModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.FloatingPointTypeModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.EnumTypeModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.DateTimeModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.SimpleTypeModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.TryParseModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.CancellationTokenModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ByteArrayModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.FormFileModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.FormCollectionModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.KeyValuePairModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.DictionaryModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ArrayModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.CollectionModelBinderProvider","Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ComplexObjectModelBinderProvider"]
+2025-12-03 19:46:30.908 +03:00 [DBG] Hosting starting
+2025-12-03 19:46:31.015 +03:00 [INF] User profile is available. Using 'C:\Users\HP\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-12-03 19:46:31.034 +03:00 [DBG] Reading data from file 'C:\Users\HP\AppData\Local\ASP.NET\DataProtection-Keys\key-05d68f3c-1723-45fe-b5f4-2dd145616947.xml'.
+2025-12-03 19:46:31.059 +03:00 [DBG] Reading data from file 'C:\Users\HP\AppData\Local\ASP.NET\DataProtection-Keys\key-574ef7cd-24b1-4498-8f73-b685fb22835d.xml'.
+2025-12-03 19:46:31.074 +03:00 [DBG] Found key {05d68f3c-1723-45fe-b5f4-2dd145616947}.
+2025-12-03 19:46:31.088 +03:00 [DBG] Found key {574ef7cd-24b1-4498-8f73-b685fb22835d}.
+2025-12-03 19:46:31.108 +03:00 [DBG] Considering key {05d68f3c-1723-45fe-b5f4-2dd145616947} with expiration date 2026-01-01 10:44:50Z as default key.
+2025-12-03 19:46:31.128 +03:00 [DBG] Forwarded activator type request from Microsoft.AspNetCore.DataProtection.XmlEncryption.DpapiXmlDecryptor, Microsoft.AspNetCore.DataProtection, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60 to Microsoft.AspNetCore.DataProtection.XmlEncryption.DpapiXmlDecryptor, Microsoft.AspNetCore.DataProtection, Culture=neutral, PublicKeyToken=adb9793829ddae60
+2025-12-03 19:46:31.139 +03:00 [DBG] Decrypting secret element using Windows DPAPI.
+2025-12-03 19:46:31.147 +03:00 [DBG] Forwarded activator type request from Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel.AuthenticatedEncryptorDescriptorDeserializer, Microsoft.AspNetCore.DataProtection, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60 to Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel.AuthenticatedEncryptorDescriptorDeserializer, Microsoft.AspNetCore.DataProtection, Culture=neutral, PublicKeyToken=adb9793829ddae60
+2025-12-03 19:46:31.158 +03:00 [DBG] Opening CNG algorithm 'AES' from provider 'null' with chaining mode CBC.
+2025-12-03 19:46:31.169 +03:00 [DBG] Opening CNG algorithm 'SHA256' from provider 'null' with HMAC.
+2025-12-03 19:46:31.180 +03:00 [DBG] Using key {05d68f3c-1723-45fe-b5f4-2dd145616947} as the default key.
+2025-12-03 19:46:31.187 +03:00 [DBG] Key ring with default key {05d68f3c-1723-45fe-b5f4-2dd145616947} was loaded during application startup.
+2025-12-03 19:46:31.226 +03:00 [DBG] Middleware loaded
+2025-12-03 19:46:31.248 +03:00 [DBG] Middleware loaded. Script /_framework/aspnetcore-browser-refresh.js (16515 B).
+2025-12-03 19:46:31.275 +03:00 [DBG] Middleware loaded. Script /_framework/blazor-hotreload.js (799 B).
+2025-12-03 19:46:31.537 +03:00 [DBG] Middleware loaded: DOTNET_MODIFIABLE_ASSEMBLIES=debug, __ASPNETCORE_BROWSER_TOOLS=true
+2025-12-03 19:46:31.767 +03:00 [INF] Now listening on: https://localhost:57678
+2025-12-03 19:46:31.775 +03:00 [DBG] Loaded hosting startup assembly OnlineStore.Web
+2025-12-03 19:46:31.783 +03:00 [DBG] Loaded hosting startup assembly Microsoft.WebTools.ApiEndpointDiscovery
+2025-12-03 19:46:31.787 +03:00 [DBG] Loaded hosting startup assembly Microsoft.AspNetCore.Watch.BrowserRefresh
+2025-12-03 19:46:31.793 +03:00 [DBG] Loaded hosting startup assembly Microsoft.WebTools.BrowserLink.Net
+2025-12-03 19:46:31.913 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-12-03 19:46:31.918 +03:00 [INF] Hosting environment: Development
+2025-12-03 19:46:31.922 +03:00 [INF] Content root path: C:\Users\HP\source\repos\OnlineStore\src\OnlineStore.Web
+2025-12-03 19:46:31.928 +03:00 [DBG] Hosting started

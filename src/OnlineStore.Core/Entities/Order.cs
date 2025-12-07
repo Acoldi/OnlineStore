@@ -32,5 +32,5 @@ public partial class Order
 
     public virtual Address ShippingAddress { get; set; } = null!;
 
-    public virtual Customer ShippingAddressNavigation { get; set; } = null!;
+    public virtual Customer Customer { get; set; } = null!;
 }

@@ -24,7 +24,11 @@ public class CustomerRepo : ICustomerRepo
   public async Task<int> CreateAsync(Customer param, CancellationToken? cancellationToken = null)
   {
     return await _connection.QuerySingleOrDefaultAsync("SP_AddCustomer", commandType: System.Data.CommandType.StoredProcedure,
-      param: param);
+      param: new
+      {
+        param.UserId,
+        param.TurnedInAt
+      });
   }
 
   // Shifting from Dapper to EF (2025-11-11 1:06)

@@ -15,7 +15,7 @@ public class ProductController : ControllerBase
   }
 
   [Authorize(Roles = "Admin")]
-  [HttpGet("AllProducts", Name = "GetAllProducts")]
+  [HttpGet("AllProducts", Name = "GetAllProductsAsync")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status404NotFound)]
   public async Task<IActionResult> GetAllProductsAsync()
@@ -24,19 +24,22 @@ public class ProductController : ControllerBase
     return Ok(result);
   }
 
-  [HttpPost("Create", Name = "AddProduct")]
+  [HttpPost("Create", Name = "AddProductAsync")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [Authorize(Roles = "Admin")]
   public async Task<IActionResult> AddProductAsync([FromBody] ProductDto NewProduct)
   {
+    int id;
 
     ProductDto? product = await _productService.GetByNameAsync(NewProduct.Name);
     if (product != null)
-      return BadRequest("there is already a product named: " + NewProduct.Name);
+    {
+      id = await _productService.CreateNewProduct(NewProduct, null);
+      return Ok("Product" + NewProduct.Name + "Is activated, Id: " + id);
+    }
 
-
-    if (await _productService.CreateNewProduct(NewProduct, null) != 0)
-      return Ok("Product created");
+    if ((id = await _productService.CreateNewProduct(NewProduct, null)) != 0)
+      return Ok("Product created, ID: " + id);
     else
       return StatusCode(StatusCodes.Status500InternalServerError);
   }
@@ -45,9 +48,16 @@ public class ProductController : ControllerBase
   [ProducesResponseType(StatusCodes.Status200OK)]
   public async Task<IActionResult> DeleteProductAsync(int ID)
   {
-    await _productService.DeleteAsync(ID);
+    try
+    {
+      await _productService.DeleteAsync(ID);
 
-    return Ok("Product deleted");
+      return Ok("Product deleted");
+    }
+    catch (Exception e)
+    {
+      return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+    }
   }
 
   [HttpGet("CustomProducts", Name = "GetCustomizableProducts")]

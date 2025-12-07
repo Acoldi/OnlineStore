@@ -22,6 +22,8 @@ public interface IOrderItemRepo : IDataAccess<OrderItem, int>
   /// <exception cref="NotImplementedException"></exception>
   public new Task<int> CreateAsync(OrderItem param, CancellationToken? cancellationToken);
 
+  public Task<int> CreateAsync(List<OrderItem> OrderItems, CancellationToken? ct = null);
+
   public List<OrderItem> GetAsync(int OrderID);
 
 }

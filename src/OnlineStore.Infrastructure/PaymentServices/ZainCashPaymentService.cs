@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OnlineStore.Core.DTOs.PaymentDtos;
 using OnlineStore.Core.Entities;
@@ -24,16 +25,16 @@ public class ZainCashPaymentService : IPaymentService
   private readonly ZainCashOptions _zainCashOptions;
   private readonly HttpClient _httpClient;
   private readonly IOrderRepo _orderRepo;
-  public ZainCashPaymentService(IPaymentRepo paymentRepo, ZainCashOptions zainCashOptions,
+  public ZainCashPaymentService(IPaymentRepo paymentRepo, IOptions<ZainCashOptions> zainCashOptions,
     HttpClient httpClient, IOrderRepo orderRepo)
   {
     _paymentRepo = paymentRepo;
-    _zainCashOptions = zainCashOptions;
+    _zainCashOptions = zainCashOptions.Value;
     _httpClient = httpClient;
     _orderRepo = orderRepo;
   }
 
-  public async Task<string> GenereateTransactionURL(Order order, CustomerDetailsDto? customerDetailsDto)
+  public async Task<string> GenereateTransactionURL(Order order)
   {
     ZainCashPaymentRequestDto zainCashPaymentRequestDto = new ZainCashPaymentRequestDto()
     {

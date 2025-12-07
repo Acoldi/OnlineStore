@@ -17,7 +17,7 @@ public class ProductDto
 
   public int CategoryId { get; set; }
 
-  public DateTime CreatedAt { get; set; }
+  public DateTime CreatedAt { get; set; } = DateTime.Now;
 
   public string? Slug { get; set; }
 

@@ -38,7 +38,7 @@ public class JWTService : IJWTService
         issuer: _configuration["JwtSettings:issuer"],
         audience: _configuration["JwtSettings:audience"],
         claims: claims,
-        expires: DateTime.Now.AddHours(2),
+        expires: DateTime.UtcNow.AddHours(2),
         signingCredentials: credentials
     );
 

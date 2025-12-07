@@ -13,9 +13,10 @@ using OnlineStore.Core.Enums;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
 using OnlineStore.Core.InterfacesAndServices.OrderItems;
 using OnlineStore.Core.InterfacesAndServices.PaymentServices;
-using OnlineStore.Core.Options;
+using OnlineStore.Infrastructure.Data.Models;
 using OnlineStore.Infrastructure.DTOs;
 using OnlineStore.Infrastructure.Mappers;
+using OnlineStore.Infrastructure.Options;
 using OpenQA.Selenium.BiDi.Input;
 using Serilog;
 
@@ -26,22 +27,29 @@ public class PayTabsPaymentService : IPaymentService
   private readonly IListProductsWithQuantitiesService _listProductsWithQuantities;
   private readonly IPaymentRepo _paymentRepo;
   private readonly IOrderRepo _orderRepo;
+  private readonly EStoreSystemContext _eStoreSystemContext;
 
   public PayTabsPaymentService(IListProductsWithQuantitiesService listProductsWithQuantitiesService,
     IOptions<PayTabsOptions> payTabsOptions,
-     [FromKeyedServices("PayTab")]IPaymentRepo paymentRepo, IOrderRepo orderRepo)
+    IPaymentRepo paymentRepo, IOrderRepo orderRepo, EStoreSystemContext eStoreSystemContext)
   {
     _payTabsOptions = payTabsOptions.Value;
     _listProductsWithQuantities = listProductsWithQuantitiesService;
     _paymentRepo = paymentRepo;
     _orderRepo = orderRepo;
+    _eStoreSystemContext = eStoreSystemContext;
   }
 
-  public async Task<string> GenereateTransactionURL(Order order, CustomerDetailsDto? payTabsCustomerDetails)
+  public async Task<string> GenereateTransactionURL(Order order)
   {
     try
     {
-      if (_payTabsOptions.server_key.IsNullOrEmpty()) throw new ConfigurationErrorsException("Server key is not provided.");
+      User? user = _eStoreSystemContext.Users.Where(u => u.Id == order.Customer.UserId).FirstOrDefault();
+
+      CustomerDetailsDto customerDetailsDto = CustomerDetailsMapper.toDto(user ?? 
+        throw new ArgumentException("No user linked to the order: " + order.Id));
+
+      if (string.IsNullOrEmpty(_payTabsOptions.server_key)) throw new ConfigurationErrorsException("Server key is not provided.");
 
       List<ProductNameQuantity> OrderItemNames =
         _listProductsWithQuantities.listProductsWithQuantitiesAsync(order.Id);
@@ -55,7 +63,7 @@ public class PayTabsPaymentService : IPaymentService
         CartCurrency = _payTabsOptions.cart_currency,
         CartAmount = order.TotalAmount,
         CartDescription = JsonSerializer.Serialize(OrderItemNames),
-        customerDetailsDto = payTabsCustomerDetails ?? new CustomerDetailsDto(),
+        customerDetailsDto = customerDetailsDto,
         CallBack = _payTabsOptions.callback,
         PaypageLang = "en",
       });

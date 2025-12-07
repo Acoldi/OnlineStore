@@ -1,52 +1,51 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
-using AngleSharp.Common;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.IdentityModel.Tokens;
 using OnlineStore.Core.DTOs;
+using OnlineStore.Core.Entities;
+using OnlineStore.Core.InterfacesAndServices;
 using OnlineStore.Web.DTOs;
+using OpenQA.Selenium;
+using OpenQA.Selenium.BiDi.Network;
 using Serilog;
+using System.Linq;
 using Xunit.Abstractions;
+using Xunit.Sdk;
+using OnlineStore.Infrastructure.Data.Models;
+using System.Text.Json;
 
 namespace IntegrationTests;
 
-public class ProductControllerTest : IClassFixture<CustomWebApplicationFactory<Program>>
+public class ProductControllerTest : IClassFixture<CustomWebApplicationFactory<Program>>, IClassFixture<SharedDataFixture>
 {
-  private readonly ITestOutputHelper _TestOutputHelper;
-  private readonly WebApplicationFactory<Program> _factory;
+  private readonly HttpClient _httpClient;
+  private readonly CustomWebApplicationFactory<Program> _factory;
+  private readonly SharedDataFixture _fixture;
 
-  public ProductControllerTest(CustomWebApplicationFactory<Program> applicationFactory, ITestOutputHelper testOutputHelper)
+  public ProductControllerTest(CustomWebApplicationFactory<Program> applicationFactory, SharedDataFixture fixture) 
   {
     _factory = applicationFactory;
 
-    _TestOutputHelper = testOutputHelper;
+    _httpClient = _factory.CreateClient();
 
-    Log.Logger = new LoggerConfiguration()
-        .WriteTo.Console()
-        .WriteTo.TestOutput(testOutputHelper)
-        .CreateLogger();
+    _fixture = fixture;
   }
 
   [Fact]
   public async Task GetAsync_ListAllProducts()
   {
     // Arrange
-    HttpClient client = _factory.CreateClient();
-    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
+    _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
 
     // Act
-    HttpResponseMessage httpResponseMessage = await client.GetAsync("api/Product/AllProducts");
+    HttpResponseMessage httpResponseMessage = await _httpClient.GetAsync("api/Product/AllProducts");
 
     // Assert
-    if (!httpResponseMessage.IsSuccessStatusCode)
-    {
-      var responseContent = await httpResponseMessage.Content.ReadAsStringAsync();
-      _TestOutputHelper.WriteLine($"Request failed with status code {httpResponseMessage
-        .StatusCode} and response: {responseContent}");
-    }
+    string responseContent = await httpResponseMessage.Content.ReadAsStringAsync();
 
-    _TestOutputHelper.WriteLine("Suucceeeessss");
-    _TestOutputHelper.WriteLine(await httpResponseMessage.Content.ReadAsStringAsync());
-    Console.Write(" SEPORATION \n", await httpResponseMessage.Content.ReadAsStringAsync());
+    Console.WriteLine(responseContent);
+
     Assert.True(httpResponseMessage.IsSuccessStatusCode);
   }
 
@@ -59,25 +58,28 @@ public class ProductControllerTest : IClassFixture<CustomWebApplicationFactory<P
 
 
     // Act
-    AddProductParameters product = new AddProductParameters()
+    ProductDto product = new ProductDto()
     {
-      ProductName = "NewlyAddedYYYY",
-      CategoryID = 1,
+      Name = "NewlyAddedYYYY13 The very new thing",
+      CategoryId = 1,
       Price = 100,
       Description = "Description",
-      CustomizationOptionID = 1,
-      
+      Sku = "NewlyAdded",
+      IsActive = true,
+      Slug = UtilityService.GenerateSlug("newly addded  de"),
+      CreatedAt = DateTime.UtcNow,
     };
+
     HttpContent content = new StringContent
-      (System.Text.Json.JsonSerializer.Serialize(product), Encoding.UTF8, "application/json");
+      (JsonSerializer.Serialize(product, options: _fixture.jsonSerializerOptions), Encoding.UTF8, "application/json");
 
     HttpResponseMessage responseMessage = await httpClient.PostAsync("api/Product/Create",
           content);
 
     // Assert
-    _TestOutputHelper.WriteLine("Request status: " + responseMessage.StatusCode + " With content: "
+    Console.WriteLine("Request status: " + responseMessage.StatusCode + " With content: "
       + await responseMessage.Content.ReadAsStringAsync());
-    Console.WriteLine("New Product ID: " + responseMessage.Content.ReadAsStringAsync());
+
     Assert.NotNull(responseMessage.Content);
     Assert.True(responseMessage.IsSuccessStatusCode);
   }

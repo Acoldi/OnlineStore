@@ -81,8 +81,8 @@ public class ProductRepo : IProductRepo
       param.Sku,
       param.CategoryId,
       param.CreatedAt,
+      param.Slug,
       param.IsActive,
-      param.Slug
     });
   }
 

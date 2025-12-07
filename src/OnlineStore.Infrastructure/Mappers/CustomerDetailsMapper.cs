@@ -21,7 +21,7 @@ public class CustomerDetailsMapper : Mapper<User, CustomerDetailsDto>
       phone = Entity.PhoneNumber ?? throw new ArgumentException("No user address."),
       state = Entity.DefaultAddress.State?.Name ?? "",
       street1 = Entity.DefaultAddress.Street,
-      zip = Entity.DefaultAddress.Zip.ToString(),
+      zip = Entity.DefaultAddress.Zip ?? "",
     };
   }
 

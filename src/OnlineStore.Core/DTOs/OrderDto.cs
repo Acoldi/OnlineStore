@@ -14,7 +14,7 @@ public class OrderDto
 
   public int CustomerId { get; set; }
 
-  public decimal? TotalAmount { get; set; }
+  public decimal TotalAmount { get; set; }
 
   /// <summary>
   ///   Pending = 1,

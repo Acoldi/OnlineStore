@@ -1,7 +1,6 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using OnlineStore.Core.Entities;
 using OnlineStore.Core.InterfacesAndServices.IRepositories;
 using OnlineStore.Infrastructure.Data.Models;
@@ -23,10 +22,47 @@ public class OrderItemRepo : IOrderItemRepo
     if (ct?.IsCancellationRequested == true)
       throw new InvalidOperationException(ct.Value.ToString());
 
-    _context.OrderItems.Add(param);
-    await _context.SaveChangesAsync();
-    
-    return param.Id;
+    using (SqlConnection sqlConnection = await _connectionFactory.CreateSqlConnection())
+    {
+      return await sqlConnection.QuerySingleOrDefaultAsync<int>("SP_AddOrderItemToCart", param:
+          new
+          {
+            param.ProductId,
+            param.ShoppingCartId,
+            param.Quantity,
+          }, commandType: System.Data.CommandType.StoredProcedure);
+    }
+  }
+
+  /// <summary>
+  /// Adds a list of order items
+  /// </summary>
+  /// <param name="OrderItems"></param>
+  /// <param name="ct"></param>
+  /// <returns>The number of added orderItems</returns>
+  /// <exception cref="InvalidOperationException"></exception>
+  public async Task<int> CreateAsync(List<OrderItem> OrderItems, CancellationToken? ct = null)
+  {
+    if (ct?.IsCancellationRequested == true)
+      throw new InvalidOperationException(ct.Value.ToString());
+
+    int inserted = 0;
+    using (SqlConnection sqlConnection = await _connectionFactory.CreateSqlConnection())
+    {
+
+      foreach (OrderItem orderItem in OrderItems)
+      {
+
+        inserted += await sqlConnection.ExecuteAsync("SP_AddOrderItemToCart", param:
+            new
+            {
+              orderItem.ProductId,
+              orderItem.ShoppingCartId,
+              orderItem.Quantity,
+            }, commandType: System.Data.CommandType.StoredProcedure);
+      }
+    }
+    return inserted;
   }
 
   public async Task<OrderItem?> CreateAndReturnEntityAsync(OrderItem param, CancellationToken? ct = null)
